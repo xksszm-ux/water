@@ -1,0 +1,28 @@
+# Build outputs
+**/build/
+**/out/
+**/CMakeFiles/
+**/CMakeCache.txt
+**/compile_commands.json
+*.elf
+*.hex
+*.bin
+*.map
+*.o
+*.obj
+*.a
+*.lib
+*.dll
+
+# Generated/local configuration
+stm32/mx.scratch/
+esp32/sdkconfig
+esp32/sdkconfig.old
+esp32/managed_components/
+
+# Editor and OS files
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+

@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="850" viewBox="0 0 1400 850">
+  <style>
+    text{font-family:'Microsoft YaHei',Arial,sans-serif;fill:#172033}.title{font-size:36px;font-weight:700}.h{font-size:25px;font-weight:700}.t{font-size:21px}.small{font-size:18px}.box{fill:#fff;stroke:#344054;stroke-width:3}.wire{fill:none;stroke-width:8}.vcc{stroke:#f28c18}.gnd{stroke:#202020}.scl{stroke:#1867c0}.sda{stroke:#7b3fb5}.node{stroke:#fff;stroke-width:3}.note{fill:#eff8ff;stroke:#1867c0;stroke-width:3}
+  </style>
+  <rect width="1400" height="850" fill="#f7f9fc"/>
+  <text x="700" y="55" text-anchor="middle" class="title">OLED + MPU6050 共用 STM32 I²C1 接线</text>
+  <text x="700" y="91" text-anchor="middle" class="t">PB6 = SCL　　PB7 = SDA　　电源与上拉均为 3.3V</text>
+
+  <rect x="60" y="190" width="310" height="430" rx="18" class="box"/>
+  <text x="215" y="240" text-anchor="middle" class="h">STM32F103C8T6</text>
+  <text x="105" y="335" class="h">3.3V</text><circle cx="330" cy="325" r="11" fill="#f28c18"/>
+  <text x="105" y="415" class="h">GND</text><circle cx="330" cy="405" r="11" fill="#202020"/>
+  <text x="105" y="495" class="h">PB6 / I2C1_SCL</text><circle cx="330" cy="485" r="11" fill="#1867c0"/>
+  <text x="105" y="575" class="h">PB7 / I2C1_SDA</text><circle cx="330" cy="565" r="11" fill="#7b3fb5"/>
+
+  <rect x="1030" y="145" width="300" height="285" rx="18" class="box"/>
+  <text x="1180" y="195" text-anchor="middle" class="h">OLED（I²C）</text>
+  <text x="1080" y="255" class="t">VCC / VDD</text><circle cx="1045" cy="245" r="10" fill="#f28c18"/>
+  <text x="1080" y="310" class="t">GND</text><circle cx="1045" cy="300" r="10" fill="#202020"/>
+  <text x="1080" y="365" class="t">SCL / SCK</text><circle cx="1045" cy="355" r="10" fill="#1867c0"/>
+  <text x="1080" y="420" class="t">SDA</text><circle cx="1045" cy="410" r="10" fill="#7b3fb5"/>
+
+  <rect x="1030" y="485" width="300" height="285" rx="18" class="box"/>
+  <text x="1180" y="535" text-anchor="middle" class="h">MPU6050</text>
+  <text x="1080" y="595" class="t">VCC</text><circle cx="1045" cy="585" r="10" fill="#f28c18"/>
+  <text x="1080" y="650" class="t">GND</text><circle cx="1045" cy="640" r="10" fill="#202020"/>
+  <text x="1080" y="705" class="t">SCL</text><circle cx="1045" cy="695" r="10" fill="#1867c0"/>
+  <text x="1080" y="760" class="t">SDA</text><circle cx="1045" cy="750" r="10" fill="#7b3fb5"/>
+
+  <!-- 3.3 V distribution -->
+  <path d="M330 325 H900 V245 H1045 M900 325 V585 H1045" class="wire vcc"/>
+  <circle cx="900" cy="325" r="10" fill="#f28c18" class="node"/>
+  <!-- Ground distribution -->
+  <path d="M330 405 H940 V300 H1045 M940 405 V640 H1045" class="wire gnd"/>
+  <circle cx="940" cy="405" r="10" fill="#202020" class="node"/>
+  <!-- SCL bus -->
+  <path d="M330 485 H830 V355 H1045 M830 485 V695 H1045" class="wire scl"/>
+  <circle cx="830" cy="485" r="10" fill="#1867c0" class="node"/>
+  <!-- SDA bus -->
+  <path d="M330 565 H780 V410 H1045 M780 565 V750 H1045" class="wire sda"/>
+  <circle cx="780" cy="565" r="10" fill="#7b3fb5" class="node"/>
+
+  <!-- Pull-ups -->
+  <path d="M560 325 V375" class="wire vcc"/><rect x="535" y="375" width="50" height="105" rx="8" fill="#e9c994" stroke="#7a5424" stroke-width="3"/><path d="M560 480 V485" class="wire scl"/>
+  <text x="470" y="430" text-anchor="end" class="h">4.7kΩ</text><text x="470" y="455" text-anchor="end" class="small">SCL上拉</text>
+  <path d="M680 325 V455" class="wire vcc"/><rect x="655" y="455" width="50" height="105" rx="8" fill="#e9c994" stroke="#7a5424" stroke-width="3"/><path d="M680 560 V565" class="wire sda"/>
+  <text x="620" y="520" text-anchor="end" class="h">4.7kΩ</text><text x="620" y="545" text-anchor="end" class="small">SDA上拉</text>
+
+  <rect x="70" y="690" width="560" height="105" rx="14" class="note"/>
+  <text x="350" y="730" text-anchor="middle" class="h">只需要一对上拉电阻</text>
+  <text x="350" y="765" text-anchor="middle" class="t">若模块已自带上拉，先不要重复外接</text>
+  <text x="700" y="825" text-anchor="middle" class="h" fill="#c5221f">禁止把SCL/SDA上拉到4.5V或5V；所有GND必须共地</text>
+</svg>

@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="900" viewBox="0 0 1400 900">
+  <style>
+    text{font-family:'Microsoft YaHei',Arial,sans-serif;fill:#172033} .title{font-size:34px;font-weight:700}.h{font-size:24px;font-weight:700}.t{font-size:20px}.small{font-size:17px}.box{fill:#fff;stroke:#344054;stroke-width:3}.rail{stroke-width:12;fill:none}.wire{stroke-width:7;fill:none}.red{stroke:#e32323}.orange{stroke:#f28c18}.blue{stroke:#1267c4}.black{stroke:#161616}.dash{stroke-dasharray:14 10}.warn{fill:#fff1f0;stroke:#e32323;stroke-width:3}.ok{fill:#effaf3;stroke:#18864b;stroke-width:3}
+  </style>
+  <rect width="1400" height="900" fill="#f7f9fc"/>
+  <text x="700" y="48" text-anchor="middle" class="title">面包板电源接线（当前 P0～P2 阶段）</text>
+
+  <!-- breadboard -->
+  <rect x="210" y="105" width="1140" height="690" rx="20" fill="#fff" stroke="#aeb7c4" stroke-width="4"/>
+  <path d="M250 155 H1310" class="rail red"/><text x="260" y="140" class="h">上红轨：4.5V</text>
+  <path d="M250 205 H1310" class="rail blue"/><text x="260" y="238" class="h">上蓝轨：公共 GND</text>
+  <path d="M250 690 H1310" class="rail orange"/><text x="260" y="675" class="h">下红轨：3.3V</text>
+  <path d="M250 745 H1310" class="rail blue"/><text x="260" y="780" class="h">下蓝轨：公共 GND</text>
+  <path d="M700 205 V745" class="wire black"/><circle cx="700" cy="205" r="10" fill="#111"/><circle cx="700" cy="745" r="10" fill="#111"/>
+  <text x="715" y="480" class="h">上下蓝轨用跳线连通</text>
+
+  <!-- supply -->
+  <rect x="20" y="265" width="160" height="210" rx="18" class="box"/>
+  <text x="100" y="320" text-anchor="middle" class="h">4.5V 电源</text>
+  <text x="100" y="370" text-anchor="middle" class="h" fill="#e32323">＋</text>
+  <text x="100" y="430" text-anchor="middle" class="h">－</text>
+  <path d="M180 360 H220 V155 H250" class="wire red"/>
+  <path d="M180 420 H200 V205 H250" class="wire blue"/>
+
+  <!-- regulator -->
+  <rect x="300" y="335" width="260" height="210" rx="15" class="box"/>
+  <text x="430" y="375" text-anchor="middle" class="h">AMS1117-3.3V</text>
+  <text x="320" y="430" class="t">VIN</text><text x="320" y="490" class="t">GND</text><text x="470" y="430" class="t">VOUT</text>
+  <path d="M300 420 H275 V155" class="wire red"/>
+  <path d="M300 480 H260 V205" class="wire blue"/>
+  <path d="M560 420 H600 V690" class="wire orange"/>
+
+  <!-- STM32 -->
+  <rect x="790" y="315" width="210" height="225" rx="15" class="box"/>
+  <text x="895" y="355" text-anchor="middle" class="h">STM32F103</text>
+  <text x="810" y="420" class="t">3.3V</text><text x="810" y="490" class="t">GND</text>
+  <path d="M790 410 H755 V690" class="wire orange"/>
+  <path d="M790 480 H735 V745" class="wire blue"/>
+
+  <!-- TB6612 -->
+  <rect x="1080" y="285" width="250" height="310" rx="15" class="box"/>
+  <text x="1205" y="328" text-anchor="middle" class="h">TB6612FNG</text>
+  <text x="1100" y="385" class="t">VM</text><text x="1100" y="440" class="t">VCC</text>
+  <text x="1100" y="495" class="t">GND × 3</text><text x="1100" y="555" class="small">AO/BO：暂不接电机</text>
+  <path d="M1080 375 H1040 V155" class="wire red"/>
+  <path d="M1080 430 H1020 V690" class="wire orange"/>
+  <path d="M1080 485 H1005 V745" class="wire blue"/>
+
+  <!-- prohibition -->
+  <path d="M1180 155 V690" class="wire red dash" opacity=".22"/>
+  <path d="M1145 395 l70 70 M1215 395 l-70 70" class="wire red"/>
+  <rect x="1040" y="610" width="280" height="58" rx="10" class="warn"/>
+  <text x="1180" y="648" text-anchor="middle" class="h" fill="#d00">禁止连接4.5V与3.3V红轨</text>
+
+  <!-- notes -->
+  <rect x="45" y="815" width="1310" height="60" rx="12" class="ok"/>
+  <text x="700" y="853" text-anchor="middle" class="h">上电前测量：上红轨≈4.5V；下红轨≈3.3V；两条蓝轨互相导通；红轨之间不导通</text>
+</svg>

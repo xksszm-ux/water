@@ -1,0 +1,51 @@
+{
+    "version": 3,
+    "configurePresets": [
+        {
+            "name": "arm-gcc-base",
+            "hidden": true,
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build/${presetName}",
+            "toolchainFile": "${sourceDir}/cmake/gcc-arm-none-eabi.cmake",
+            "environment": {
+                "PATH": "$penv{LOCALAPPDATA}/stm32cube/bundles/gnu-tools-for-stm32/14.3.1+st.2/bin;$penv{LOCALAPPDATA}/stm32cube/bundles/ninja/1.13.2+st.1/bin;$penv{PATH}"
+            },
+            "cacheVariables": {
+                "CMAKE_EXPORT_COMPILE_COMMANDS": {
+                    "type": "BOOL",
+                    "value": "ON"
+                }
+            }
+        },
+        {
+            "name": "Debug",
+            "displayName": "STM32 Debug (ARM GCC)",
+            "description": "Debug build for STM32F103C8T6 using arm-none-eabi-gcc and Ninja",
+            "inherits": "arm-gcc-base",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug"
+            }
+        },
+        {
+            "name": "Release",
+            "displayName": "STM32 Release (ARM GCC)",
+            "description": "Size-optimized release build for STM32F103C8T6 using arm-none-eabi-gcc and Ninja",
+            "inherits": "arm-gcc-base",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release"
+            }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "Debug",
+            "displayName": "Build STM32 Debug",
+            "configurePreset": "Debug"
+        },
+        {
+            "name": "Release",
+            "displayName": "Build STM32 Release",
+            "configurePreset": "Release"
+        }
+    ]
+}
