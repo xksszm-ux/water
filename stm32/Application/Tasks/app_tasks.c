@@ -6,6 +6,10 @@
 #include "queue.h"
 #include "task.h"
 #include "task_entries.h"
+#include "task_health.h"
+
+_Static_assert(configTICK_RATE_HZ == 1000, "Application deadlines require a 1 ms tick");
+_Static_assert(APP_TASK_COUNT == TASK_HEALTH_COUNT, "Task health order must match task IDs");
 
 osMessageQueueId_t g_sensor_queue;
 osMessageQueueId_t g_motor_command_queue;
@@ -18,6 +22,7 @@ osThreadId_t g_communication_task_handle;
 osThreadId_t g_display_task_handle;
 osThreadId_t g_storage_task_handle;
 static volatile uint32_t task_heartbeat[APP_TASK_COUNT];
+static TaskHealth_t task_health;
 static volatile uint32_t sensor_queue_drop_count;
 static volatile uint8_t motor_stop_reasons;
 
@@ -69,6 +74,7 @@ bool AppTasks_Init(void)
 {
   if (!CreateQueues() || !CreateMutexes()) return false;
   motor_stop_reasons = 0U;
+  TaskHealth_Init(&task_health, osKernelGetTickCount());
   RobotState_Init();
   ControlArbiter_Init();
   g_sensor_task_handle = osThreadNew(SensorTask_Entry, NULL, &sensor_attributes);
@@ -151,6 +157,7 @@ void AppTasks_GetDiagnostics(RtosDiagnostics_t *diagnostics)
     diagnostics->heartbeat[index] = task_heartbeat[index];
   }
   taskEXIT_CRITICAL();
+  diagnostics->health_fault_mask = AppTasks_HealthPoll(osKernelGetTickCount());
 }
 
 void AppTasks_RecordSensorQueueDrop(void)
@@ -166,6 +173,19 @@ void AppTasks_Heartbeat(AppTaskId_t task_id)
   taskENTER_CRITICAL();
   ++task_heartbeat[task_id];
   taskEXIT_CRITICAL();
+}
+
+uint8_t AppTasks_HealthPoll(uint32_t now_ms)
+{
+  uint32_t heartbeat[APP_TASK_COUNT];
+  uint8_t fault_mask;
+  taskENTER_CRITICAL();
+  for (uint32_t i = 0U; i < APP_TASK_COUNT; ++i) {
+    heartbeat[i] = task_heartbeat[i];
+  }
+  fault_mask = TaskHealth_Poll(&task_health, heartbeat, now_ms);
+  taskEXIT_CRITICAL();
+  return fault_mask;
 }
 
 void vApplicationStackOverflowHook(TaskHandle_t task, char *task_name)

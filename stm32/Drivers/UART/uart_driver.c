@@ -198,14 +198,18 @@ HAL_StatusTypeDef UartDriver_Service(void)
     return HAL_ERROR;
   }
 
-  if ((uart_handle->RxState != HAL_UART_STATE_BUSY_RX) ||
+  /* TX completion changes both HAL state and our pending flag in the IRQ. */
+  taskENTER_CRITICAL();
+  const bool invalid = (uart_handle->RxState != HAL_UART_STATE_BUSY_RX) ||
       (uart_handle->hdmarx->State != HAL_DMA_STATE_BUSY) ||
       ((uart_handle->Instance->CR3 & USART_CR3_DMAR) == 0U) ||
       (transmit_pending &&
        (uart_handle->gState != HAL_UART_STATE_BUSY_TX)) ||
       (!transmit_pending &&
        (uart_handle->gState != HAL_UART_STATE_READY)) ||
-      (HAL_UART_GetError(uart_handle) != HAL_UART_ERROR_NONE)) {
+      (HAL_UART_GetError(uart_handle) != HAL_UART_ERROR_NONE);
+  taskEXIT_CRITICAL();
+  if (invalid) {
     LatchTaskContextError();
     return HAL_ERROR;
   }

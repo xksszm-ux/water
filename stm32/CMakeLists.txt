@@ -45,6 +45,7 @@ target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE
 # Add sources to executable
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     Application/Tasks/app_tasks.c
+    Application/Tasks/task_health.c
     Application/Tasks/sensor_task.c
     Application/Tasks/motor_task.c
     Application/Tasks/battery_task.c
@@ -52,14 +53,14 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     Application/Tasks/communication_task.c
     Application/Tasks/display_task.c
     Application/Tasks/storage_task.c
-    Application/Services/robot_state.c
-    Application/Services/battery_monitor.c
-    Application/Services/storage_log.c
-    Application/Services/motor_step4_test.c
-    Application/Services/control_arbiter.c
-    Application/Services/protocol.c
-    Application/Services/power_supply_guard.c
-    Application/Services/battery_step7_test.c
+    Application/Services/State/robot_state.c
+    Application/Services/Power/battery_monitor.c
+    Application/Services/Storage/storage_log.c
+    Application/SelfTests/motor_step4_test.c
+    Application/Services/Control/control_arbiter.c
+    Application/Services/Protocol/protocol.c
+    Application/Services/Power/power_supply_guard.c
+    Application/SelfTests/battery_step7_test.c
     Drivers/Motor/motor.c
     Drivers/MPU6050/mpu6050.c
     Drivers/OLED/oled.c
@@ -74,8 +75,14 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
 
 # Add include paths
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
+    ../shared
     Application/Tasks
-    Application/Services
+    Application/Services/Control
+    Application/Services/Protocol
+    Application/Services/State
+    Application/Services/Power
+    Application/Services/Storage
+    Application/SelfTests
     Drivers/Motor
     Drivers/MPU6050
     Drivers/OLED
@@ -113,3 +120,6 @@ add_custom_command(TARGET ${CMAKE_PROJECT_NAME} POST_BUILD
     COMMENT "Generating ${CMAKE_PROJECT_NAME}.hex and ${CMAKE_PROJECT_NAME}.bin"
     VERBATIM
 )
+
+# Per-function static stack estimates; not a substitute for on-device high-water marks.
+target_compile_options(${CMAKE_PROJECT_NAME} PRIVATE -fstack-usage)

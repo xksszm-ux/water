@@ -297,7 +297,10 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *can)
 {
   bool received = false;
   if (can != can_handle) return;
-  while (HAL_CAN_GetRxFifoFillLevel(can, CAN_RX_FIFO0) > 0U) {
+  /* bxCAN FIFO holds three frames. New arrivals must not extend this ISR.
+     Remaining FMP0 keeps the level-triggered pending IRQ asserted. */
+  for (uint32_t count = 0U; count < 3U; ++count) {
+    if (HAL_CAN_GetRxFifoFillLevel(can, CAN_RX_FIFO0) == 0U) break;
     CAN_RxHeaderTypeDef header;
     uint8_t data[8];
     if (HAL_CAN_GetRxMessage(can, CAN_RX_FIFO0, &header, data) != HAL_OK) {

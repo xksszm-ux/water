@@ -126,10 +126,12 @@ void SensorTask_Entry(void *argument)
     const bool distance_fresh = have_distance_sample && hc_sr04_ready &&
         ((uint32_t)(now - last_distance_success) <=
          SENSOR_STALE_TIMEOUT_MS);
-    message.timestamp_ms = now;
     message.valid_mask = SENSOR_VALID_NONE;
     if (mpu_fresh) message.valid_mask |= SENSOR_VALID_MPU6050;
     if (distance_fresh) message.valid_mask |= SENSOR_VALID_DISTANCE;
+    /* One shared timestamp conservatively expires all valid fields together. */
+    SensorMessage_SetSampleTime(&message, now, last_mpu_success,
+                               last_distance_success);
 
     RobotState_SetError(ROBOT_ERROR_SENSOR,
                         !mpu_fresh || !distance_fresh, now);

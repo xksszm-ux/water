@@ -1,0 +1,61 @@
+# STM32 + ESP32 双主控机器人交接
+
+更新：2026-10-07。只进行软件检查、固件构建和Git交付，不操作开发板。历史设备观察及限制在docs/ENGINEERING.md第10节；当前验证在software_checks/README.md。
+
+## 1. 现在做什么？
+
+按用户要求补PVD/电机寄存器、ADC DMA、超声波、I2C/SPI及完整BLE/GATT生命周期的生产代码检查，然后更新交付并提交/推送GitHub。唯一主工程为本仓库；远程origin为https://github.com/xksszm-ux/water.git，分支main。提交/推送状态仍须核对git status和远程，不以本文准备状态当作上传成功。
+
+## 2. 已经完成了什么？
+
+- 双端UART V1、STOP优先与旧命令失效、控制仲裁、过期数据、重连握手、0x82诊断及0x83 CAN反馈已经形成软件链；BLE DRIVE、CAN/AUTO非零运动仍拒绝。
+- 按职责迁移45个文件，构建及include引用同步；STM32有27个应用/自编驱动C文件，ESP32有9个C文件。ESP32基线为官方ESP-IDF 6.1，tick为10 ms；STM32为1 ms。
+- 原20组检查保留，新增PowerMotorChecks_Run、AdcDmaChecks_Run、UltrasonicChecks_Run、I2cSpiChecks_Run、EspBleChecks_Run，合计25组。新增五组初版已分别运行返回0；ADC/超声波/SPI扩展边界已包括在该独立结果中。随后追加的GATT新鲜反馈、STOP通知失败等小用例仍等待最终复测，详见验证记录。
+- 实际复现MPU6050_Init(NULL)在先前成功后保留ready，已在共同初始化入口先清ready，回归通过；生产调用者均已核对。不是实机故障经历。
+- 本次STM32 Debug/Release配置、重新链接成功：FLASH 59028/50592 B，RAM 17048/17032 B。ESP-IDF 6.1增量构建成功，app 503888 B，bootloader 26176 B。构建不是硬件验收。
+- 检查优先采用PATH中的LLVM，可用ROBOT_HOST_CLANG/ROBOT_HOST_LINK覆盖；旧本机路径仅作fallback。STM32 preset移除固定工具目录，使用PATH ARM GCC/Ninja；实际本机构建已验证。
+- 已添加.github/workflows/software.yml：Windows主机检查、STM32 Debug/Release、ESP-IDF 6.1自动构建；尚不能仅凭文件存在宣称CI通过。
+
+## 3. 卡在哪里？
+
+- 本机Windows CodeIntegrity事件3077确认应用控制策略间歇拦截新DLL，返回WinError 4551；未更改签名策略/防护设置。全部检查C源码在最后一轮扩展之前已以-Wall -Wextra -Werror编译，五组新增检查独立通过，但最终统一入口没有完成。
+- 最后一次复测启动又被自动审批连续两次超时拒绝，返回未判定操作不安全；已向用户请求明确批准。最后追加用例不声称执行通过。后续先核对待答与CI实际结果，不能无限重试或绕过系统策略。
+- 真实RTOS抢占、多核互斥、NVIC/DMA时序、NimBLE协议栈/加密/RF、物理I2C/SPI恢复、PVD响应、栈峰值、CPU负载、机械停车及长稳仍未验证。
+- 功能缺口仍有完整手机诊断、日志导出、任务健康故障处置策略；BLE运动、避障、编码器PID和OTA未实现。它们不属于本轮补测范围。
+
+## 4. 下一步做什么？
+
+1. git status --short，读本文件、README、docs/ENGINEERING.md及software_checks/README.md。检查用户对复测的回复；运行最终25组检查，记录失败/阻塞，不访问hardware脚本。
+2. 核对所有交付路径、文档链接、生成物/敏感文件排除及git diff --check。已有未提交的分类迁移和源码一起作为主工程交付，保留上级副本。
+3. 按用户明确授权提交本仓库并正常推送origin/main，不使用force。已fetch确认本地HEAD与origin/main相同；推送前后再核对。检查GitHub Actions实际作业，发现失败修复并重跑；通过后更新持久验证记录及交接。
+4. 后续软件开发先选择手机完整诊断、日志导出或任务健康处置之一，沿生产链补小检查；运动/导航/PID/OTA另行定义范围。IWDG继续关闭，健康期限仍是静态预算。
+
+## 5. 哪些坑不要踩？
+
+- 不把构建、顺序HAL/OS替身、零PWM/ACK当作硬件验收或机械停车；不编造CPU数字、长稳时长或实机bug。
+- 不清0x5E、不调整电池阈值、不伪造正常采样。用户只连接电机驱动与5 V→3.3 V降压，PA0什么都没有接，其余传感/显示/存储/CAN外设未接；历史约3.2 V不是有效电池实测。
+- 不开放BLE DRIVE/CAN/AUTO非零运动；UART内部运动路径仍存在，不能称全局禁用运动。故障恢复仍需新命令，保留资格/校准参数。
+- UART IDLE不是帧边界；重复发布不能刷新采样时间。ISR不做阻塞/复杂解析；PVD优先级4不调用RTOS，FromISR外设优先级5满足内核约束。
+- CMSIS/ESP-IDF栈创建参数按字节，上游FreeRTOS常按word；挂起调度器不关闭中断，也不替代ESP32跨核锁。
+- 不执行software_checks/build里的live/boot/SWD脚本，不混用上级robot/esp32/software_checks副本，不用reset/clean清理未提交文件；不上传构建产物或本机生成sdkconfig。
+
+## 6. 有哪些必须保留的关键上下文？
+
+STM32拥有最终输出/停止权，7个常驻业务任务；AppTasks_Init在调度器启动前创建资源，失败进入Error_Handler。默认任务启动后退出，静态栈/数组不回收。ESP32先协议自检→UART启动→BLE；UART两任务都创建成功后才通知启动，不保证并发Start/Get/清理安全。
+
+控制命令300 ms过期；独立STOP位优先清单槽最新命令队列。CAN共享Submit会消费前向序号但安全拒绝非零请求，不取owner/不入队；旧CAN STOP仍全局生效。AUTO目前只是CAN控制域，PID包解析后仍UNSUPPORTED，编码器引脚在现有EXTI回调被忽略。
+
+ESP32 ONLINE必须有本轮序号匹配STOP ACK及严格晚于ACK的新鲜零输出STATUS，同tick保守等下一帧。STATUS新鲜500 ms，STOP重试250 ms；诊断不推进握手。0x82诊断为revision2，0x83 CAN反馈独立revision1/16 B，BLE ...1003加密只读18 B；离线或报告超3000 ms不可用。报告新鲜与事件age不同，最新原因可被随后STOP覆盖，无逐命令CAN运动ACK。
+
+健康策略：3 s启动宽限，Motor100 ms、Sensor/CAN/Comm1000 ms、Battery2000 ms、Display5000 ms；Storage因长扫描/擦写不设超时。仅诊断锁存，不独立健康停机/喂狗，IWDG关闭。ADC每通道丢首样+8样，共18次各自等待20 ms，不是整个读取20 ms。PVD/电机紧急锁存保持保护；电池/方向/分压参数须保留并待硬件校准。
+
+开发遵守上级AGENTS.md及项目Ponytail技能：先追生产调用链，再最小改动，不新增框架/依赖来展示术语。测试包含实际.c，仅替换硬件/OS边界；新BLE检查执行生产回调和Host/Status/Stop任务体的顺序路径，不模拟NimBLE密码学或真实抢占。SDK6.1的nimble_port_stop可能无限等待，必须保留隔离worker与超时后阻止重启的策略。
+
+复现命令从主工程根目录执行，先将ARM GCC/Ninja加入PATH并激活ESP-IDF6.1；详细本机示例在software_checks/README.md：
+
+```powershell
+python -u software_checks/run.py
+./verify.ps1
+```
+
+单独固件构建：stm32目录cmake --preset Debug / cmake --build --preset Debug（Release同理）；esp32目录idf.py build。生成物在各build目录并被Git忽略。GitHub工作流是无硬件的独立环境验证；可移植构建结果、运行URL与真实限制必须按实际结果补记。

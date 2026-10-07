@@ -273,6 +273,17 @@ static void ProcessReceivedBytes(uint32_t now_ms, bool *status_requested,
   uint32_t frames_processed = 0U;
   uint8_t byte;
 
+  /* Expire buffered partial frames BEFORE new bytes refresh last_byte_ms. */
+  while ((parse_operations < UART_PARSE_OPERATION_BUDGET) &&
+         (frames_processed < UART_FRAME_BUDGET)) {
+    const ProtocolParseResult_t result = ProtocolParser_Next(
+        &parser, now_ms, &received_frame);
+    if (result == PROTOCOL_PARSE_NONE) break;
+    ++parse_operations;
+    HandleParserResult(result, now_ms, status_requested, link_online,
+                       last_valid_frame_ms, &frames_processed);
+  }
+
   while ((bytes_processed < UART_RX_BYTE_BUDGET) &&
          (frames_processed < UART_FRAME_BUDGET) &&
          (parse_operations < UART_PARSE_OPERATION_BUDGET) &&
@@ -298,21 +309,15 @@ static void ProcessReceivedBytes(uint32_t now_ms, bool *status_requested,
     }
   }
 
-  /* This call also expires a partial frame when no new byte has arrived. */
-  while ((parse_operations < UART_PARSE_OPERATION_BUDGET) &&
-         (frames_processed < UART_FRAME_BUDGET)) {
-    const ProtocolParseResult_t result = ProtocolParser_Next(
-        &parser, now_ms, &received_frame);
-    if (result == PROTOCOL_PARSE_NONE) break;
-    ++parse_operations;
-    HandleParserResult(result, now_ms, status_requested, link_online,
-                       last_valid_frame_ms, &frames_processed);
-  }
+
 }
 
 static uint8_t BuildStatusFrame(uint16_t sequence)
 {
   ProtocolStatus_t status;
+  const uint32_t now = osKernelGetTickCount();
+  RobotState_InvalidateSensorIfStale(now);
+  RobotState_InvalidateBatteryIfStale(now);
   RobotState_GetSnapshot(&status_snapshot);
   status.battery_mv = status_snapshot.battery_valid ?
       status_snapshot.battery_mv : PROTOCOL_INVALID_U16;
@@ -335,6 +340,40 @@ static uint8_t BuildStatusFrame(uint16_t sequence)
                                         sizeof(status_buffer));
 }
 
+/* Low-rate diagnostic sampling runs in task context, never in an ISR. */
+static void QueueDiagnostics(uint16_t sequence)
+{
+  static RtosDiagnostics_t rtos;
+  RobotDiagnostics_t wire = {0};
+  UartDriverDiagnostics_t uart;
+  AppTasks_GetDiagnostics(&rtos);
+  UartDriver_GetDiagnostics(&uart);
+  wire.free_heap = (uint16_t)rtos.free_heap_bytes;
+  wire.minimum_heap = (uint16_t)rtos.minimum_free_heap_bytes;
+  wire.stack_free[0] = (uint16_t)rtos.sensor_stack_free_bytes;
+  wire.stack_free[1] = (uint16_t)rtos.motor_stack_free_bytes;
+  wire.stack_free[2] = (uint16_t)rtos.battery_stack_free_bytes;
+  wire.stack_free[3] = (uint16_t)rtos.can_stack_free_bytes;
+  wire.stack_free[4] = (uint16_t)rtos.communication_stack_free_bytes;
+  wire.stack_free[5] = (uint16_t)rtos.display_stack_free_bytes;
+  wire.stack_free[6] = (uint16_t)rtos.storage_stack_free_bytes;
+  wire.health_fault_mask = rtos.health_fault_mask;
+  wire.receive_errors = uart.hardware_errors + uart.overflow_events +
+      g_uart_crc_error_count + g_uart_parser_timeout_count;
+  wire.response_drops = g_uart_response_drop_count;
+  wire.sensor_queue_drops = rtos.sensor_queue_drop_count;
+  const size_t length = Protocol_EncodeDiagnostics(sequence, &wire,
+                                                   encode_buffer, sizeof(encode_buffer));
+  if (length == 0U || !ResponseQueuePush(encode_buffer, (uint8_t)length))
+    ++g_uart_response_drop_count;
+  RobotCanFeedback_t feedback;
+  ControlArbiter_GetCanFeedback(osKernelGetTickCount(), &feedback);
+  const size_t feedback_length = Protocol_EncodeCanFeedback(sequence, &feedback,
+      encode_buffer, sizeof(encode_buffer));
+  if (feedback_length == 0U || !ResponseQueuePush(encode_buffer, (uint8_t)feedback_length))
+    ++g_uart_response_drop_count;
+}
+
 void CommunicationTask_Entry(void *argument)
 {
   (void)argument;
@@ -344,6 +383,7 @@ void CommunicationTask_Entry(void *argument)
   uint32_t transmit_started_ms = 0U;
   uint32_t next_status_ms = now;
   uint16_t status_sequence = 0U;
+  uint32_t last_diagnostics_ms = now;
   UartTxPurpose_t tx_purpose = UART_TX_PURPOSE_NONE;
   bool driver_initialized = false;
   bool uart_ready = false;
@@ -427,6 +467,13 @@ void CommunicationTask_Entry(void *argument)
       tx_purpose = UART_TX_PURPOSE_NONE;
       RobotState_SetError(ROBOT_ERROR_UART, true, now);
       ControlArbiter_ReportSourceFault(CONTROL_SOURCE_UART, now);
+    }
+
+    /* Never queue diagnostics ahead of a waiting ACK or an in-flight response. */
+    if (uart_ready && response_count == 0U &&
+        (uint32_t)(now - last_diagnostics_ms) >= 1000U) {
+      QueueDiagnostics(status_sequence++);
+      last_diagnostics_ms = now;
     }
 
     if (uart_ready && !UartDriver_IsTxPending() &&

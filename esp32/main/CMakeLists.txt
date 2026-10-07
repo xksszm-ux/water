@@ -1,13 +1,15 @@
 idf_component_register(
     SRCS
         "main.c"
-        "robot_ble.c"
-        "robot_ble_protocol.c"
-        "robot_ble_protocol_self_test.c"
-        "robot_protocol.c"
-        "robot_protocol_self_test.c"
-        "robot_uart_link.c"
-    INCLUDE_DIRS "."
+        "ble/robot_ble.c"
+        "ble/robot_ble_lifecycle.c"
+        "protocol/robot_ble_protocol.c"
+        "self_test/robot_ble_protocol_self_test.c"
+        "protocol/robot_protocol.c"
+        "self_test/robot_protocol_self_test.c"
+        "uart/robot_uart_link.c"
+        "uart/robot_link_safety.c"
+    INCLUDE_DIRS "." "ble" "uart" "protocol" "self_test" "../../shared"
     PRIV_REQUIRES
         bt
         esp_driver_gpio

@@ -7,9 +7,6 @@
             "generator": "Ninja",
             "binaryDir": "${sourceDir}/build/${presetName}",
             "toolchainFile": "${sourceDir}/cmake/gcc-arm-none-eabi.cmake",
-            "environment": {
-                "PATH": "$penv{LOCALAPPDATA}/stm32cube/bundles/gnu-tools-for-stm32/14.3.1+st.2/bin;$penv{LOCALAPPDATA}/stm32cube/bundles/ninja/1.13.2+st.1/bin;$penv{PATH}"
-            },
             "cacheVariables": {
                 "CMAKE_EXPORT_COMPILE_COMMANDS": {
                     "type": "BOOL",

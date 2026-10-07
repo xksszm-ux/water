@@ -201,6 +201,10 @@ void CanTask_Entry(void *argument)
       if (frame.standard_id == CAN_ID_MOTOR_COMMAND) {
         const CanProtocolResult_t result = CanProtocol_DecodeControl(
             frame.data, frame.dlc, &received_command);
+        if (result != CAN_PROTOCOL_OK) {
+          ControlArbiter_RecordInvalidCan(frame.dlc == CAN_PROTOCOL_FRAME_SIZE ? frame.data[6] : 0U,
+              frame.dlc == CAN_PROTOCOL_FRAME_SIZE, now);
+        }
         const bool submitted = (result == CAN_PROTOCOL_OK) &&
             SubmitControlCommand(&received_command, now);
 #if CAN_DRIVER_INTERNAL_LOOPBACK_TEST
@@ -228,6 +232,9 @@ void CanTask_Entry(void *argument)
 
     if (can_ready && !CanDriver_IsTransmitPending() &&
         (tx_purpose == CAN_TX_PURPOSE_NONE)) {
+      /* CAN must not depend on Comm/Display/Storage to expire its snapshot. */
+      RobotState_InvalidateSensorIfStale(now);
+      RobotState_InvalidateBatteryIfStale(now);
 #if CAN_DRIVER_INTERNAL_LOOPBACK_TEST
       if (loopback_tx_probe_pending) {
         /* 0x101 is not in the RX filter, so only the TX IRQ can complete it. */

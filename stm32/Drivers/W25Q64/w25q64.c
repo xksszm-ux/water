@@ -1,4 +1,6 @@
 #include "w25q64.h"
+#include "cmsis_os2.h"
+/* Task-context driver: settling/poll intervals yield to the scheduler. */
 #include "main.h"
 
 #define CMD_WRITE_ENABLE   0x06U
@@ -49,7 +51,7 @@ static HAL_StatusTypeDef WaitWhileBusy(uint32_t timeout_ms)
   do {
     if (ReadStatus(&status) != HAL_OK) return HAL_ERROR;
     if ((status & STATUS_BUSY_MASK) == 0U) return HAL_OK;
-    HAL_Delay(1U);
+    (void)osDelay(1U);
   } while ((uint32_t)(HAL_GetTick() - started_at) < timeout_ms);
   flash_ready = false;
   return HAL_TIMEOUT;
@@ -88,7 +90,7 @@ HAL_StatusTypeDef W25Q64_Init(SPI_HandleTypeDef *spi)
   if (spi == NULL) return HAL_ERROR;
   flash_spi = spi;
   Deselect();
-  HAL_Delay(1U);
+  (void)osDelay(1U);
   Select();
   HAL_StatusTypeDef result =
       HAL_SPI_Transmit(flash_spi, (uint8_t *)&command, 1U, SPI_TIMEOUT_MS);

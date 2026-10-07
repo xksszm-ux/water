@@ -1,3 +1,5 @@
+> 状态声明（2026-09-22）：项目未完成且未通过硬件验收；下文硬件步骤是待执行清单，历史构建/测试描述不代表当前实机结论。当前软件证据以 [验证记录](../../software_checks/README.md) 为准。
+
 # Step 10A BLE安全联调协议
 
 本阶段目标是先验证手机到ESP32、ESP32到STM32的安全停车链路。非零运动被编译期设计明确禁用；通过本阶段不等于BLE运动控制完成。
@@ -8,6 +10,7 @@
 - Service：`7e57a000-bbcd-4b20-9f0d-3c8fa62e1000`
 - Command：`7e57a000-bbcd-4b20-9f0d-3c8fa62e1001`，加密 Write Request
 - Status：`7e57a000-bbcd-4b20-9f0d-3c8fa62e1002`，加密 Read + Notify
+- CAN Feedback：`7e57a000-bbcd-4b20-9f0d-3c8fa62e1003`，加密只读，18 B（独立revision=1载荷16 B+CRC16小端）；原20 B Status不变。flags=0不可用、4新鲜报告尚无事件、5/7有事件序号无/有；报告超过3000 ms或链路离线不可用。字段/结果表及限制见[工程说明](../../docs/ENGINEERING.md)。读取不接受任何运动命令，不是逐命令ACK；手机需重新发现服务，真实授权读取待验。
 - 单连接，LE Secure Connections Just Works，加密并保存一个绑定；显式分发LTK和Identity Key以支持RPA身份解析。
 
 Just Works不能抵抗主动中间人攻击，因此本阶段只能称为“加密 + 物理授权换绑”，不能称为已认证控制。非零运动仍被禁用；开放运动前还必须增加受认证的配对方案和已绑定手机白名单，不能使用源码硬编码的通用密码。

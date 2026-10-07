@@ -125,6 +125,7 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+  Error_Handler();
   while (1)
   {
     /* USER CODE END WHILE */

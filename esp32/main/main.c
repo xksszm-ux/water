@@ -93,17 +93,25 @@ void app_main(void)
     }
 
     if (!RobotBleProtocolSelfTest_Run(&ble_protocol_failure_mask)) {
-        (void)RobotUartLink_RequestStop();
+        const esp_err_t stop_result = RobotUartLink_RequestStop();
+        if (stop_result != ESP_OK) {
+            ESP_LOGE(TAG, "Unable to queue additional UART STOP: %s",
+                     esp_err_to_name(stop_result));
+        }
         ESP_LOGE(TAG, "BLE V1 protocol self-test: FAIL, mask=0x%08" PRIX32,
                  ble_protocol_failure_mask);
-        ESP_LOGE(TAG, "BLE disabled; UART safety STOP link remains active");
+        ESP_LOGE(TAG, "BLE not started; UART link retains STOP-only policy");
     } else {
         ESP_LOGI(TAG, "BLE Step 10A protocol self-test: PASS");
         const esp_err_t ble_result = RobotBle_Start();
         if (ble_result != ESP_OK) {
-            (void)RobotUartLink_RequestStop();
+            const esp_err_t stop_result = RobotUartLink_RequestStop();
+            if (stop_result != ESP_OK) {
+                ESP_LOGE(TAG, "Unable to queue additional UART STOP: %s",
+                         esp_err_to_name(stop_result));
+            }
             ESP_LOGE(TAG, "BLE start failed: %s", esp_err_to_name(ble_result));
-            ESP_LOGE(TAG, "BLE disabled; UART safety STOP link remains active");
+            ESP_LOGE(TAG, "BLE startup aborted; UART link retains STOP-only policy");
         } else {
             ble_available = true;
         }
@@ -165,6 +173,25 @@ void app_main(void)
                      (unsigned int)status.owner);
         }
 
+        RobotDiagnostics_t remote;
+        uint32_t diagnostic_age;
+        if (RobotUartLink_GetRemoteDiagnostics(&remote, &diagnostic_age)) {
+            ESP_LOGI(TAG, "STM32 diag age=%" PRIu32 " heap=%u min=%u health_fault=0x%02X rxerr=%" PRIu32
+                     " response_drop=%" PRIu32 " sensor_drop=%" PRIu32,
+                     diagnostic_age, remote.free_heap, remote.minimum_heap,
+                     remote.health_fault_mask, remote.receive_errors,
+                     remote.response_drops, remote.sensor_queue_drops);
+            ESP_LOGI(TAG, "STM32 stack free bytes S/M/B/C/U/D/F=%u/%u/%u/%u/%u/%u/%u",
+                     remote.stack_free[0], remote.stack_free[1], remote.stack_free[2],
+                     remote.stack_free[3], remote.stack_free[4], remote.stack_free[5], remote.stack_free[6]);
+        }
         vTaskDelay(pdMS_TO_TICKS(5000));
+        RobotCanFeedback_t feedback;
+        if (RobotUartLink_GetCanFeedback(&feedback)) {
+            ESP_LOGI(TAG, "CAN feedback flags=%u seq=%u result=%u reject=%" PRIu32
+                " replay=%" PRIu32 " event_age_ms=%" PRIu32,
+                feedback.flags, feedback.sequence, feedback.result,
+                feedback.rejected, feedback.replays, feedback.age_ms);
+        }
     }
 }

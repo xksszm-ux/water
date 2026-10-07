@@ -1,0 +1,18 @@
+#pragma once
+#include "stm32f1xx_hal.h"
+#define TB6612_STBY_GPIO_Port (&mock_gpio_a)
+#define TB6612_STBY_Pin (1U<<4)
+#define TB6612_AIN1_GPIO_Port (&mock_gpio_b)
+#define TB6612_AIN2_GPIO_Port (&mock_gpio_b)
+#define TB6612_BIN1_GPIO_Port (&mock_gpio_b)
+#define TB6612_BIN2_GPIO_Port (&mock_gpio_b)
+#define TB6612_AIN1_Pin (1U<<8)
+#define TB6612_AIN2_Pin (1U<<9)
+#define TB6612_BIN1_Pin (1U<<10)
+#define TB6612_BIN2_Pin (1U<<11)
+#define HC_TRIG_GPIO_Port (&mock_gpio_b)
+#define HC_TRIG_Pin (1U<<5)
+#define HC_ECHO_GPIO_Port (&mock_gpio_a)
+#define HC_ECHO_Pin (1U<<15)
+#define W25Q64_CS_GPIO_Port (&mock_gpio_b)
+#define W25Q64_CS_Pin (1U<<12)

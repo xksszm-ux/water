@@ -11,6 +11,7 @@ void StorageTask_Entry(void *argument)
   SensorMessage_t sensor;
   RobotStatus_t snapshot;
   bool storage_ready = false;
+  bool have_sensor = false;
   uint32_t last_sensor_received = 0U;
   uint32_t last_init_attempt = osKernelGetTickCount() - 1000U;
   uint32_t last_log_time = osKernelGetTickCount();
@@ -26,13 +27,14 @@ void StorageTask_Entry(void *argument)
 
     if (osMessageQueueGet(g_sensor_queue, &sensor, NULL, 50U) == osOK) {
       last_sensor_received = sensor.timestamp_ms;
+      have_sensor = true;
     }
 
     const uint32_t current_time = osKernelGetTickCount();
     RobotState_InvalidateSensorIfStale(current_time);
     RobotState_GetSnapshot(&snapshot);
 
-    if (storage_ready && (last_sensor_received != 0U) &&
+    if (storage_ready && have_sensor &&
         ((uint32_t)(current_time - last_sensor_received) <= 1000U) &&
         ((uint32_t)(osKernelGetTickCount() - last_log_time) >= 5000U)) {
       if (StorageLog_Append(&snapshot) == HAL_OK) {

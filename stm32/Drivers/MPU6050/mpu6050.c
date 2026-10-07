@@ -1,4 +1,6 @@
 #include "mpu6050.h"
+#include "cmsis_os2.h"
+/* Task-context driver: settling/poll intervals yield to the scheduler. */
 
 #define MPU6050_ADDRESS_LOW       0x68U
 #define MPU6050_ADDRESS_HIGH      0x69U
@@ -41,9 +43,9 @@ static int16_t ReadBe16(const uint8_t *data)
 
 HAL_StatusTypeDef MPU6050_Init(I2C_HandleTypeDef *i2c)
 {
+  mpu_ready = false;
   if (i2c == NULL) return HAL_ERROR;
   mpu_i2c = i2c;
-  mpu_ready = false;
 
   const uint8_t addresses[] = {MPU6050_ADDRESS_LOW, MPU6050_ADDRESS_HIGH};
   for (uint32_t index = 0U; index < 2U; ++index) {
@@ -64,7 +66,7 @@ HAL_StatusTypeDef MPU6050_Init(I2C_HandleTypeDef *i2c)
   }
 
   if (WriteRegister(MPU6050_REG_PWR_MGMT_1, 0x80U) != HAL_OK) return HAL_ERROR;
-  HAL_Delay(100U);
+  (void)osDelay(100U);
   if (WriteRegister(MPU6050_REG_PWR_MGMT_1, 0x01U) != HAL_OK) return HAL_ERROR;
   if (WriteRegister(MPU6050_REG_SMPLRT_DIV, 4U) != HAL_OK) return HAL_ERROR;
   if (WriteRegister(MPU6050_REG_CONFIG, 0x03U) != HAL_OK) return HAL_ERROR;

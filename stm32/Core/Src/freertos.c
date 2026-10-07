@@ -78,7 +78,10 @@ void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
   */
 void MX_FREERTOS_Init(void) {
   /* USER CODE BEGIN Init */
-
+  if (osKernelGetState() != osKernelReady)
+  {
+    Error_Handler();
+  }
   /* USER CODE END Init */
 
   /* USER CODE BEGIN RTOS_MUTEX */
@@ -102,11 +105,19 @@ void MX_FREERTOS_Init(void) {
   defaultTaskHandle = osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
-  /* add threads, ... */
+  if (defaultTaskHandle == NULL)
+  {
+    Error_Handler();
+  }
   /* USER CODE END RTOS_THREADS */
 
   /* USER CODE BEGIN RTOS_EVENTS */
-  /* add events, ... */
+  /* Commit all static application tasks before the scheduler can run any of
+     them. A partial creation failure stays inside the existing fail-stop path. */
+  if (!AppTasks_Init())
+  {
+    Error_Handler();
+  }
   /* USER CODE END RTOS_EVENTS */
 
 }
@@ -123,13 +134,7 @@ void StartDefaultTask(void *argument)
   /* USER CODE BEGIN StartDefaultTask */
   (void)argument;
 
-  if (!AppTasks_Init())
-  {
-    Error_Handler();
-  }
-
-  /* The CubeMX default task is only a bootstrap. Its storage is static, so
-     exiting removes the task from scheduling but does not reclaim the arrays. */
+  /* CubeMX's static default task has no application work after pre-start init. */
   osThreadExit();
   /* USER CODE END StartDefaultTask */
 }

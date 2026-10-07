@@ -1,25 +1,49 @@
-# ESP32 Side
+# ESP32 software scope
 
-经典 ESP32 上的 ESP-IDF 5.4.4 工程，负责 BLE GATT 服务和 STM32 UART 安全链路。
+This is an unfinished dual-MCU prototype. Hardware acceptance has not passed.
+No historical pairing, flashing, or motion statement in older notes is acceptance evidence.
 
-## 当前范围
+Use the repository root as the single project entry point. ESP-IDF 6.1.x targets classic ESP32.
+The top-level CMake configuration rejects other IDF major/minor versions and requires CMake 3.22.
+The default firmware remains BLE STOP-only: DRIVE is rejected, and the UART link requires
+fresh zero-output STATUS after this handshake's STOP ACK. The extracted
+`main/uart/robot_link_safety.c` policy is shared by firmware and host regression checks.
 
-- UART2：GPIO17 TX、GPIO16 RX、115200 8N1。
-- NimBLE 单连接 GATT Server，提供加密命令写入与加密状态读取/通知。
-- 已实现绑定、RPA 隐私、单绑定和 BOOT/GPIO0 长按 3 s 打开的 60 s 换绑窗口。
-- 当前只接受 STOP；格式正确的 DRIVE 也会被拒绝。
-- UART 只有在 STOP ACK 和其后的零 PWM 新鲜状态都成立时才标记 ONLINE。
+`main/main.c` remains the startup entry. Code is grouped under `main/ble/`
+(authorization/lifecycle), `main/uart/` (transport/safety), `main/protocol/`
+(wire formats), and `main/self_test/` (bootstrap protocol checks).
+These remain sources of the existing main component; no new IDF components were added.
 
-手机侧已经验证扫描、配对、加密读取、状态通知、STOP、断连/重连，以及坏 CRC、错误长度和 DRIVE 拒绝。第二部手机换绑及配对窗口边界仍待完整实测。
+UART2 uses GPIO17 TX / GPIO16 RX at 115200 8N1. Encrypted GATT status remains 20 bytes.
+The new V1 type 0x82 diagnostic frame is decoded with `../shared/robot_diagnostics.h`;
+latest STM32 heap/stack/heartbeat/error values are printed by app_main, not sent over BLE.
+It neither grants ONLINE state nor refreshes motion validity.
 
-## 构建
+V1 type 0x83 carries the latest CAN decision, raw sequence, reject/replay counters
+and event age. It reaches app_main logs and the encrypted read-only characteristic
+`7e57a000-bbcd-4b20-9f0d-3c8fa62e1003` (18 bytes). Offline or >3000 ms-old reports
+are unavailable; a fresh report with no CAN event is distinct. Existing status formats
+remain unchanged. See the engineering document for fields, limits and host evidence;
+the actual GATT callback, phone read and RX task have not been exercised by host tests.
 
-```powershell
-idf.py set-target esp32
-idf.py build
-```
+Build from an ESP-IDF shell with `idf.py build`, or run `../verify.ps1` from the root.
+No flash command is part of verify.ps1. A later, explicitly requested device check on
+2026-10-05 flashed this v6.1 firmware to COM5 (ESP32-D0WD-V3, 4 MiB), verified writes,
+and captured about 45 seconds of boot logs. Protocol self-tests passed, NimBLE reported
+advertising, and UART STOP ACK plus fresh zero-output STM32 STATUS kept the link ONLINE.
+STM32 continuously reported error=0x5E and invalid distance; peripheral fault causes,
+mechanical stopping, phone pairing/encrypted reads, lifecycle failures, resource cleanup,
+stack margins and long-term operation remain unverified. Details are recorded only in
+engineering section 10; this device observation does not expand the host-test coverage.
 
-不要提交生成的 `sdkconfig`；需要的 NimBLE 配置已保存在 `sdkconfig.defaults`。
+On 2026-10-05 the project was rebuilt with the installed official v6.1 SDK and GCC 15.2.0,
+using a freshly generated sdkconfig. The 100 Hz RTOS tick is explicit in sdkconfig.defaults;
+GATT client is disabled by the disabled Central role, without an invisible explicit setting.
+UART V1, diagnostics revision 2, CAN feedback revision 1, BLE packets and STOP-only are unchanged.
+Twenty host groups and both MCU builds passed; the app is 503888 bytes in a 1 MiB partition.
+Five CMake private-include warnings originate inside IDF's esp_wifi/wpa_supplicant components.
+No SDK sources or warning settings were changed. These results do not validate real NimBLE
+events or existing-device NVS/bond migration. The additional old/new NimBLE host stack/core
+configuration comparison was not completed because its read request was not approved.
 
-完整 BLE 协议见 [`docs/STEP10_BLE_PROTOCOL.md`](docs/STEP10_BLE_PROTOCOL.md)。
-
+See [engineering explanation](../docs/ENGINEERING.md) and [verification evidence](../software_checks/README.md).

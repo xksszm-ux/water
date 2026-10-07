@@ -30,6 +30,7 @@ typedef struct {
   uint32_t storage_stack_free_bytes;
   uint32_t sensor_queue_drop_count;
   uint32_t storage_record_count;
+  uint8_t health_fault_mask;
   uint32_t heartbeat[7];
 } RtosDiagnostics_t;
 
@@ -58,6 +59,7 @@ void AppTasks_RequestMotorStop(uint8_t reasons);
 uint8_t AppTasks_ConsumeMotorStopRequest(void);
 void AppTasks_GetDiagnostics(RtosDiagnostics_t *diagnostics);
 void AppTasks_Heartbeat(AppTaskId_t task_id);
+uint8_t AppTasks_HealthPoll(uint32_t now_ms);
 void AppTasks_RecordSensorQueueDrop(void);
 
 #endif
