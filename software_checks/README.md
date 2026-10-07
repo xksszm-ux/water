@@ -35,7 +35,7 @@ $env:PATH='C:/Users/12992/AppData/Local/stm32cube/bundles/gnu-tools-for-stm32/14
 
 ### 10-07补测与交付状态
 
-新增五组（总25组）的完整C源码已编译，五组分别调用检查入口返回0，使用-Wall -Wextra -Werror。随后在BLE组追加STOP通知失败、GATT新鲜/过期反馈和意外Host退出等小用例，该最终C检查文件又单独编译成功；最终运行复测因自动审批连续两次超时尚未执行，不能把初版结果冒充最终全部通过。run.py也通过Python语法编译检查。
+新增五组（总25组）的完整C源码已编译，五组分别调用检查入口返回0，使用-Wall -Wextra -Werror。随后在BLE组追加STOP通知失败、GATT新鲜/过期反馈和意外Host退出等小用例，该最终C检查文件又单独编译成功；最终运行复测仍受下述执行环境阻塞，不能把初版结果冒充最终全部通过。run.py也通过Python语法编译检查。
 
 | 新增入口 | 已执行的主要场景与边界 |
 |---|---|
@@ -47,7 +47,11 @@ $env:PATH='C:/Users/12992/AppData/Local/stm32cube/bundles/gnu-tools-for-stm32/14
 
 本机构建实际命令：上述PATH下从stm32执行Debug/Release配置与构建，从激活6.1的esp32执行idf.py build。均返回0：Debug FLASH59028/RAM17048 B，Release FLASH50592/RAM17032 B；ESP32增量app503888/bootloader26176 B。未访问硬件，ESP32没有全量重编译。
 
-本机统一入口先编译全部DLL再加载，曾在app_tasks_init/power_motor/drivers.dll处被Windows CodeIntegrity事件3077拦截，Python报WinError4551；独立五组读取成功不代表统一入口成功。没有关闭防护、修改签名策略或换文件名躲避审核。最后启动复测的自动审批连续两次超时，并未给出风险判定；已请求用户指导。
+本机统一入口先编译全部DLL再加载，曾在app_tasks_init/power_motor/drivers.dll处被Windows CodeIntegrity事件3077拦截，Python报WinError4551；独立五组读取成功不代表统一入口成功。没有关闭防护、修改签名策略或换文件名躲避审核。
+
+用户10-07明确批准后，重跑software_checks/run.py仍遇自动审批超时；按工具允许重试一次也同样超时，两次均未创建运行进程。尝试保留沙箱限制运行相同命令，则在第52行生成crt.lib前由lld-link返回Permission denied（退出1）；单独lld-link --version也失败，未观察到本次新的CodeIntegrity事件3077，不能把当前拒绝归因于旧DLL签名拦截。没有本次25组PASS或最终GATT运行结果，拟保存的final_retest_20261007.log因首条命令未执行而不能作为证据。授权已明确，当前是审批服务/执行环境阻塞，不要求用户重复批准。
+
+最后追加用例已再次对照生产CommandAccess/StatusAccess/CanFeedbackAccess/HostTask及状态编码字段，未发现明显预期冲突；这是静态核对，不是执行通过。新鲜/过期UART快照由替身返回，因此该GATT组验证读取与载荷呈现，不重新证明真实接收任务或500/3000 ms过期计时；这些生产策略另有既有检查，真实链路仍待验。
 
 [GitHub工作流](../.github/workflows/software.yml)在push/PR执行原Windows检查、Ubuntu STM32 Debug/Release及官方ESP-IDF v6.1构建。不烧录、不部署；最终提交和CI结果以HANDOFF及实际运行记录为准。源码/文档已准备不等于已经提交/上传。
 

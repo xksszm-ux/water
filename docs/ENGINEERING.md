@@ -429,4 +429,4 @@ run.py优先环境覆盖/PATH LLVM，保留旧本机工具作为fallback，不�
 
 .github/workflows/software.yml用Windows2022运行现有Windows ctypes检查，用Ubuntu24.04分别构建STM32 Debug/Release及ESP32；Windows LLVM来源依据[GitHub runner镜像清单](https://github.com/actions/runner-images/blob/main/images/windows/Windows2022-Readme.md)，ESP32使用[Espressif官方CI action](https://github.com/espressif/esp-idf-ci-action)并固定v6.1。没有重写算法或RTOS模拟器；代价是CI下载SDK、编译器版本与本机未必相同，GitHub动作版本/镜像变化仍可能影响构建。添加配置不构成运行成功证据，实际状态见HANDOFF和软件验证记录。
 
-五组新增初版独立运行返回0，两端构建成功；最终小用例复测/统一入口遇Windows CodeIntegrity签名策略与自动审批超时，均未绕过。先前第8/9节及20组数字是历史时点记录，本节覆盖软件补测进展；硬件缺口不因此消失。
+五组新增初版独立运行返回0，两端构建成功；最终小用例复测/统一入口此前遇Windows CodeIntegrity签名策略与自动审批超时，均未绕过。用户10-07明确批准软件复测后，两次沙箱外启动仍被审批超时拒绝，沙箱内运行及lld-link --version则返回Permission denied，尚未进入运行断言；当前不再等待重复批准，执行环境仍阻塞。先前第8/9节及20组数字是历史时点记录，最终25组运行结果仍缺；硬件缺口不因此消失。
