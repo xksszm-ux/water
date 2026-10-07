@@ -315,9 +315,8 @@ static void ProcessReceivedBytes(uint32_t now_ms, bool *status_requested,
 static uint8_t BuildStatusFrame(uint16_t sequence)
 {
   ProtocolStatus_t status;
-  const uint32_t now = osKernelGetTickCount();
-  RobotState_InvalidateSensorIfStale(now);
-  RobotState_InvalidateBatteryIfStale(now);
+  RobotState_InvalidateSensorIfStale();
+  RobotState_InvalidateBatteryIfStale();
   RobotState_GetSnapshot(&status_snapshot);
   status.battery_mv = status_snapshot.battery_valid ?
       status_snapshot.battery_mv : PROTOCOL_INVALID_U16;

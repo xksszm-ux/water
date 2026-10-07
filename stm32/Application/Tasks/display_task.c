@@ -112,7 +112,7 @@ void DisplayTask_Entry(void *argument)
 
     if (display_ready) {
       refresh_ok = true;
-      RobotState_InvalidateSensorIfStale(now);
+      RobotState_InvalidateSensorIfStale();
       RobotState_GetSnapshot(&snapshot);
       DrawStatus(&snapshot);
       for (uint8_t page = 0U; page < OLED_PAGES; ++page) {

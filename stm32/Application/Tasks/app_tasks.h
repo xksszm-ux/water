@@ -59,7 +59,8 @@ void AppTasks_RequestMotorStop(uint8_t reasons);
 uint8_t AppTasks_ConsumeMotorStopRequest(void);
 void AppTasks_GetDiagnostics(RtosDiagnostics_t *diagnostics);
 void AppTasks_Heartbeat(AppTaskId_t task_id);
-uint8_t AppTasks_HealthPoll(uint32_t now_ms);
+/* Samples time and heartbeats under the same critical section. */
+uint8_t AppTasks_HealthPoll(void);
 void AppTasks_RecordSensorQueueDrop(void);
 
 #endif

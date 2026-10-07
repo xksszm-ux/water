@@ -166,6 +166,10 @@ for name, sources, includes, export in (
     peripheral_checks.append((build_boundary_checks(name, sources,
         "software_checks/peripheral_stubs", includes, [export]), export))
 
+peripheral_checks.append((build_boundary_checks("clock_repro",
+    ["software_checks/logic/clock_repro_checks.c"], "software_checks/stubs",
+    ["stm32/Application/Services/State"], ["ClockRepro_Run"]), "ClockRepro_Run"))
+
 # The declarations live in one reviewed header. Empty SDK include shims are
 # generated here so the test can include the complete production UART source.
 esp_stubs = BUILD / "esp_uart_stubs"
@@ -338,7 +342,7 @@ init_check = init_dll.AppTasksInitChecks_Run
 init_check.restype = c.c_int
 line = init_check()
 check(line == 0, f"app_tasks_init_checks.c:{line}: partial creation failure was accepted")
-print("PASS STM32 AppTasks_Init: injected queue, mutex and partial task creation failures")
+print("PASS STM32 AppTasks_Init: resource failures and protected health time/heartbeat snapshots")
 for name in ("UartDriverChecks_Run", "CanDriverChecks_Run", "StorageLogChecks_Run"):
     run_check = getattr(driver_dll, name)
     run_check.restype = c.c_int

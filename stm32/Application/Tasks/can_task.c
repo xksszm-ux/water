@@ -233,8 +233,8 @@ void CanTask_Entry(void *argument)
     if (can_ready && !CanDriver_IsTransmitPending() &&
         (tx_purpose == CAN_TX_PURPOSE_NONE)) {
       /* CAN must not depend on Comm/Display/Storage to expire its snapshot. */
-      RobotState_InvalidateSensorIfStale(now);
-      RobotState_InvalidateBatteryIfStale(now);
+      RobotState_InvalidateSensorIfStale();
+      RobotState_InvalidateBatteryIfStale();
 #if CAN_DRIVER_INTERNAL_LOOPBACK_TEST
       if (loopback_tx_probe_pending) {
         /* 0x101 is not in the RX filter, so only the TX IRQ can complete it. */

@@ -21,7 +21,7 @@ uint32_t osKernelGetTickCount(void) { return now; }
 void AppTasks_RequestMotorStop(uint8_t r) { stops |= r; }
 uint8_t AppTasks_ConsumeMotorStopRequest(void) { uint8_t r = stops; stops = 0; return r; }
 void AppTasks_Heartbeat(AppTaskId_t id) { (void)id; }
-uint8_t AppTasks_HealthPoll(uint32_t at_ms) { (void)at_ms; return 0U; }
+uint8_t AppTasks_HealthPoll(void) { return 0U; }
 bool AppTasks_SubmitMotorCommandInternal(const MotorCommand_t *command)
 {
     if (!submit_ok) return false;
@@ -60,17 +60,17 @@ int ControlChecks_Run(void)
 {
     RobotStatus_t status;
     SensorMessage_t sensor={.timestamp_ms=0,.valid_mask=SENSOR_VALID_DISTANCE};
-    Reset(0); RobotState_UpdateSensor(&sensor); RobotState_InvalidateSensorIfStale(201);
+    Reset(0); RobotState_UpdateSensor(&sensor); now=201; RobotState_InvalidateSensorIfStale();
     RobotState_GetSnapshot(&status); CHECK(status.sensor_valid_mask==0);
     /* A republished cached sample must retain its acquisition deadline. */
     sensor.valid_mask=SENSOR_VALID_MPU6050|SENSOR_VALID_DISTANCE;
     SensorMessage_SetSampleTime(&sensor,199,190,0);
     CHECK(sensor.timestamp_ms==0);
     now=199;
-    RobotState_UpdateSensor(&sensor); RobotState_InvalidateSensorIfStale(200);
+    RobotState_UpdateSensor(&sensor); now=200; RobotState_InvalidateSensorIfStale();
     RobotState_GetSnapshot(&status); CHECK(status.sensor_valid_mask==3);
     CHECK(status.updated_at_ms==199 && status.sensor_updated_at_ms==0);
-    RobotState_InvalidateSensorIfStale(201);
+    now=201; RobotState_InvalidateSensorIfStale();
     RobotState_GetSnapshot(&status); CHECK(status.sensor_valid_mask==0);
     SensorMessage_SetSampleTime(&sensor,10,UINT32_MAX-50,5);
     CHECK(sensor.timestamp_ms==UINT32_MAX-50);
@@ -85,7 +85,7 @@ int ControlChecks_Run(void)
     CHECK(sensor.timestamp_ms==10);
     sensor.valid_mask=SENSOR_VALID_DISTANCE;
     sensor.timestamp_ms=UINT32_MAX-50;
-    RobotState_UpdateSensor(&sensor); RobotState_InvalidateSensorIfStale(151);
+    RobotState_UpdateSensor(&sensor); now=151; RobotState_InvalidateSensorIfStale();
     RobotState_GetSnapshot(&status); CHECK(status.sensor_valid_mask==0);
     MotorCommand_t motion={.left_output_permille=400,.right_output_permille=300,
                            .mode=ROBOT_MODE_BLE,.enable=true};
@@ -115,7 +115,7 @@ int ControlChecks_Run(void)
     supply_safe=false; RunMotor(1); CHECK(output_left==0);
     supply_safe=true; RobotState_UpdateBattery(4500,2000,false,now);
     RunMotor(1); CHECK(output_left==0);
-    now+=1501; CHECK(!RobotState_IsMotorPowerAllowed(now));
+    now+=1501; CHECK(!RobotState_IsMotorPowerAllowed());
     Reset(100); motion.mode=ROBOT_MODE_AUTO; RobotState_SetMode(ROBOT_MODE_AUTO,now);
     CHECK(ControlArbiter_SubmitCan(255,&motion,now)==CONTROL_RESULT_SAFETY_BLOCKED);
     CHECK(ControlArbiter_SubmitCan(0,&motion,++now)==CONTROL_RESULT_SAFETY_BLOCKED);

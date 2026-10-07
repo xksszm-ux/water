@@ -157,7 +157,7 @@ void AppTasks_GetDiagnostics(RtosDiagnostics_t *diagnostics)
     diagnostics->heartbeat[index] = task_heartbeat[index];
   }
   taskEXIT_CRITICAL();
-  diagnostics->health_fault_mask = AppTasks_HealthPoll(osKernelGetTickCount());
+  diagnostics->health_fault_mask = AppTasks_HealthPoll();
 }
 
 void AppTasks_RecordSensorQueueDrop(void)
@@ -175,11 +175,12 @@ void AppTasks_Heartbeat(AppTaskId_t task_id)
   taskEXIT_CRITICAL();
 }
 
-uint8_t AppTasks_HealthPoll(uint32_t now_ms)
+uint8_t AppTasks_HealthPoll(void)
 {
   uint32_t heartbeat[APP_TASK_COUNT];
   uint8_t fault_mask;
   taskENTER_CRITICAL();
+  const uint32_t now_ms = osKernelGetTickCount();
   for (uint32_t i = 0U; i < APP_TASK_COUNT; ++i) {
     heartbeat[i] = task_heartbeat[i];
   }

@@ -41,7 +41,7 @@ void MotorTask_RunCycle(MotorTaskState_t *state)
   AppTasks_Heartbeat(APP_TASK_MOTOR);
   MotorCommand_t latest;
   const uint32_t now = osKernelGetTickCount();
-  (void)AppTasks_HealthPoll(now);
+  (void)AppTasks_HealthPoll();
   const uint8_t stop_reasons = AppTasks_ConsumeMotorStopRequest();
   const bool stop_requested = stop_reasons != 0U;
   if (stop_requested) {
@@ -61,11 +61,11 @@ void MotorTask_RunCycle(MotorTaskState_t *state)
     RobotState_SetError(ROBOT_ERROR_COMM_TIMEOUT, false, now);
   }
 
-  RobotState_InvalidateBatteryIfStale(now);
+  RobotState_InvalidateBatteryIfStale();
   const bool supply_safe = PowerSupplyGuard_IsSafe();
   if (!supply_safe) RobotState_InvalidateBattery(now);
   const bool motor_power_allowed = supply_safe &&
-      RobotState_IsMotorPowerAllowed(now);
+      RobotState_IsMotorPowerAllowed();
   const bool command_expired = state->command_seen &&
       ((uint32_t)(now - state->command.issued_at_ms) > MOTOR_COMMAND_TIMEOUT_MS);
   if (!motor_power_allowed) {

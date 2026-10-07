@@ -31,7 +31,7 @@ void StorageTask_Entry(void *argument)
     }
 
     const uint32_t current_time = osKernelGetTickCount();
-    RobotState_InvalidateSensorIfStale(current_time);
+    RobotState_InvalidateSensorIfStale();
     RobotState_GetSnapshot(&snapshot);
 
     if (storage_ready && have_sensor &&

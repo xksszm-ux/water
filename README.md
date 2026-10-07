@@ -93,7 +93,7 @@ software_checks/
 
 [GitHub Actions](.github/workflows/software.yml)在push/PR时运行Windows主机检查、STM32 Debug/Release和ESP-IDF 6.1构建；不连接硬件、不部署。CI结果以实际运行记录为准，不把新增工作流视作已通过。
 
-最新实际验证（2026-10-07）：主工程已上传main；[CI运行37584729464](https://github.com/xksszm-ux/water/actions/runs/37584729464)的25组生产逻辑检查、STM32 Debug/Release、ESP-IDF6.1构建全部通过。最后GATT用例的执行证据已补齐；本机Windows DLL拦截仍独立保留，硬件/真实RTOS未验证。工具链、产物尺寸与警告见[验证记录](software_checks/README.md)。
+已上传基线验证（2026-10-07）：主工程main的[CI运行37584729464](https://github.com/xksszm-ux/water/actions/runs/37584729464)中25组生产逻辑检查、STM32 Debug/Release、ESP-IDF6.1构建全部通过。随后本地已修复共享旧时间误判并对齐BLE30秒期限文档；两项关键回归实际通过、两端构建成功，当前完整26组运行仍被Windows加载策略阻止，改动尚未提交/推送。旧CI不代替新修复结果，硬件/真实RTOS未验证；详见[验证记录](software_checks/README.md)。
 
 本轮统一入口结果（2026-10-05）：20组软件检查通过；STM32 Debug/Release、ESP-IDF 6.1构建通过，5.4.4被版本约束拒绝。6.1有5项SDK内部CMake依赖警告，未修改SDK消除它们。任务健康策略把不同任务的超期故障锁存并通过0x82修订2诊断帧输出，但期限尚未通过真实调度校准。生产UART/CAN回调、日志层及ESP32 UART启动已有替身检查。随后仅ESP32产物完成实际烧录/有限启动观察，STM32本次产物未烧录；电脑检查仍不执行真实RTOS/硬件，设备观察也未覆盖手机授权、故障恢复、DMA时序或外围器件验收。
 

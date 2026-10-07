@@ -4,6 +4,7 @@
 #include "can_protocol.h"
 #include <string.h>
 #define CHECK(x) do { if (!(x)) return __LINE__; } while (0)
+void ControlChecks_SetNow(uint32_t time);
 int WireChecks_Run(void)
 {
     uint8_t wire[PROTOCOL_MAX_FRAME_SIZE];
@@ -12,8 +13,9 @@ int WireChecks_Run(void)
     SensorMessage_t sample={.valid_mask=SENSOR_VALID_DISTANCE,.timestamp_ms=0};
     RobotState_UpdateSensor(&sample);
     RobotState_UpdateBattery(4500,1,false,0);
-    RobotState_InvalidateSensorIfStale(1501);
-    RobotState_InvalidateBatteryIfStale(1501);
+    ControlChecks_SetNow(1501);
+    RobotState_InvalidateSensorIfStale();
+    RobotState_InvalidateBatteryIfStale();
     RobotStatus_t expired;
     RobotState_GetSnapshot(&expired);
     CanProtocol_EncodeStatus(&expired,wire);

@@ -77,12 +77,13 @@ typedef struct {
 
 void RobotState_Init(void);
 void RobotState_UpdateSensor(const SensorMessage_t *sensor);
-void RobotState_InvalidateSensorIfStale(uint32_t now_ms);
+/* Freshness decisions sample the current tick while the state is protected. */
+void RobotState_InvalidateSensorIfStale(void);
 void RobotState_UpdateBattery(uint16_t battery_mv, uint16_t adc_raw,
                               bool battery_low, uint32_t timestamp_ms);
 void RobotState_InvalidateBattery(uint32_t timestamp_ms);
-void RobotState_InvalidateBatteryIfStale(uint32_t now_ms);
-bool RobotState_IsMotorPowerAllowed(uint32_t now_ms);
+void RobotState_InvalidateBatteryIfStale(void);
+bool RobotState_IsMotorPowerAllowed(void);
 void RobotState_UpdateMotorOutput(int16_t left_permille, int16_t right_permille,
                                   uint32_t timestamp_ms);
 void RobotState_SetMode(RobotMode_t mode, uint32_t timestamp_ms);

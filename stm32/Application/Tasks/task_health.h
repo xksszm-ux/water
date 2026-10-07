@@ -13,6 +13,7 @@ typedef struct {
 } TaskHealth_t;
 
 void TaskHealth_Init(TaskHealth_t *health, uint32_t now_ms);
+/* Caller serializes health and samples time together with the heartbeats. */
 uint8_t TaskHealth_Poll(TaskHealth_t *health,
                         const uint32_t heartbeat[TASK_HEALTH_COUNT],
                         uint32_t now_ms);

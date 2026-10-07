@@ -218,7 +218,7 @@ static ControlResult_t Submit(ControlSource_t source,
       result = CONTROL_RESULT_MODE_REJECTED;
       goto resume_scheduler;
     }
-    motor_power_allowed = RobotState_IsMotorPowerAllowed(now_ms);
+    motor_power_allowed = RobotState_IsMotorPowerAllowed();
   }
 
   taskENTER_CRITICAL();

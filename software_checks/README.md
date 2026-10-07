@@ -1,6 +1,6 @@
 # 软件验证记录
 
-更新：2026-10-07。项目未完成，未通过硬件验收。当前25组检查及新增生产边界的实际执行状态见下文“10-07补测”；其后20组数字为历史记录，不扩大成真实RTOS/硬件验证。本轮不访问串口、ST-Link或板卡。历史设备观察见[工程说明](../docs/ENGINEERING.md)第10节。
+更新：2026-10-07。项目未完成，未通过硬件验收。当前入口26组，本次实际结果见下文“10-07 F1/F2修复”；旧25组CI与20组数字为历史记录，不扩大成真实RTOS/硬件验证。本轮不访问串口、ST-Link或板卡。历史设备观察见[工程说明](../docs/ENGINEERING.md)第10节。
 
 ## 唯一入口与复现
 
@@ -32,6 +32,43 @@ $env:PATH='C:/Users/12992/AppData/Local/stm32cube/bundles/gnu-tools-for-stm32/14
 `run.py` 保留原入口。检查按职责放在 `logic/`（控制与策略）、`protocol/`（互通/编码）、`integration/`（通信调度与连续双端场景）、`drivers/`（驱动及日志边界）、`startup/`（资源创建失败）中。`stubs/`、`startup_stubs/`、`driver_stubs/` 保留原位置，分别提供不同检查需要的边界声明；ESP32 UART启动声明与其检查放在 `startup/`。生产源码的显式引用与编译include目录已同步调整，不复制生产算法。
 
 ## 本轮实际结果
+
+### 10-07 F1/F2修复（尚未提交/推送）
+
+按用户顺序修复共享旧时间误判及BLE期限文档。旧clock_repro.py在修改前实际运行：`REPRODUCED: healthy Motor falsely latched (0x02); newer sensor sample invalidated by older observer time.` 返回0是当时旧缺陷复现，不是修复通过。
+
+AppTasks_HealthPoll和RobotState传感/电池过期、运动电源资格接口不再接收外部now；在短临界区内采tick并读取共享状态，保留无符号回绕和原阈值。所有固件/检查调用者同步。AppTasksInitChecks_Run扩展进入临界区前Motor抢占的顺序注入，验证健康时间/心跳快照、真实超期锁存与回绕；clock_repro_checks.c直接include生产RobotState，检查新样本抢占、200/201ms传感、1500/1501ms电池、零tick/回绕与非常旧数据。
+
+| 本次执行 | 结果 |
+|---|---|
+| `python -u software_checks/logic/clock_repro.py` | 修复后严格编译完成，clock_app_tasks.dll加载4551，断言未开始；脚本现为修复后回归入口 |
+| `python -u software_checks/run.py` | 当前26组DLL全部-Wall/-Wextra/-Werror编译完成，checks.dll加载4551、退出1，全套断言未开始；新组已纳入现有统一入口/CI |
+| 单独执行统一入口已生成的AppTasksInitChecks_Run及ClockRepro_Run | 使用run.py同一load_check_library错误边界，两个导出均返回0/PASS，进程退出0；只替换OS/时间边界，实际RTOS/ISR未运行 |
+| STM32 Debug/Release配置与增量构建 | 两者都重新编译受影响源并链接成功；ARM GCC14.3.1，Debug FLASH59008/RAM17048B，Release FLASH50576/RAM17032B |
+| ESP-IDF6.1 `idf.py build` | 增量成功，app0x7b050、bootloader0x6640；ESP32生产代码未改，SDK旧警告未修 |
+
+两组通过不等于26组全部通过，也不等于本机策略解除。没有反复重试已明确阻止的相同DLL、关闭保护、安装环境或上传本轮代码；历史CI37584729464仅验证旧基线。独立两模块的可复现入口如下（无需重新编译；先运行上述run.py生成DLL）：
+
+```powershell
+@'
+import ast, ctypes as c, sys
+from pathlib import Path
+root = Path.cwd()
+tree = ast.parse((root / 'software_checks/run.py').read_text(encoding='utf-8'))
+loader = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == 'load_check_library')
+exec(compile(ast.Module(body=[loader], type_ignores=[]), 'software_checks/run.py', 'exec'))
+checks = [('app_tasks_init.dll', 'AppTasksInitChecks_Run'), ('clock_repro.dll', 'ClockRepro_Run')]
+loaded = [(load_check_library(root / 'software_checks/build' / path), name) for path, name in checks]
+for dll, name in loaded:
+    check = getattr(dll, name)
+    check.restype = c.c_int
+    line = check()
+    assert line == 0, f'{name}: source line {line}'
+    print(f'PASS {name}')
+'@ | & 'C:/Espressif/python_env/idf6.1_py3.11_env/Scripts/python.exe' -
+```
+
+F2只对齐STEP10_BLE_PROTOCOL.md为30秒，到期由现有约200ms状态任务请求STOP/断连，GAP确认仍是异步；代码常量与既有29999/30000ms用例不变，没有实机断连验收。
 
 ### 10-07 GitHub交付与最终CI验证
 

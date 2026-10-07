@@ -33,9 +33,10 @@ void RobotState_UpdateSensor(const SensorMessage_t *sensor)
   taskEXIT_CRITICAL();
 }
 
-void RobotState_InvalidateSensorIfStale(uint32_t now_ms)
+void RobotState_InvalidateSensorIfStale(void)
 {
   taskENTER_CRITICAL();
+  const uint32_t now_ms = osKernelGetTickCount();
   if ((robot_status.sensor_valid_mask != SENSOR_VALID_NONE) &&
       ((uint32_t)(now_ms - robot_status.sensor_updated_at_ms) >
        SENSOR_DATA_TIMEOUT_MS)) {
@@ -70,9 +71,10 @@ void RobotState_InvalidateBattery(uint32_t timestamp_ms)
   taskEXIT_CRITICAL();
 }
 
-void RobotState_InvalidateBatteryIfStale(uint32_t now_ms)
+void RobotState_InvalidateBatteryIfStale(void)
 {
   taskENTER_CRITICAL();
+  const uint32_t now_ms = osKernelGetTickCount();
   if (robot_status.battery_valid &&
       ((uint32_t)(now_ms - robot_status.battery_updated_at_ms) >
        BATTERY_DATA_TIMEOUT_MS)) {
@@ -83,10 +85,11 @@ void RobotState_InvalidateBatteryIfStale(uint32_t now_ms)
   taskEXIT_CRITICAL();
 }
 
-bool RobotState_IsMotorPowerAllowed(uint32_t now_ms)
+bool RobotState_IsMotorPowerAllowed(void)
 {
   bool allowed;
   taskENTER_CRITICAL();
+  const uint32_t now_ms = osKernelGetTickCount();
   allowed = robot_status.battery_valid &&
       ((uint32_t)(now_ms - robot_status.battery_updated_at_ms) <=
        BATTERY_DATA_TIMEOUT_MS) &&
