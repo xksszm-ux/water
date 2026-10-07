@@ -423,13 +423,13 @@ idf.py -p COM5 -b 460800 flash
 - 修复/选择：在共同Init入口先清ready，与其他外设初始化模式一致；所有调用者已核对，不逐个加补丁。替代在调用者清状态无法保证驱动API一致性。
 - 回归：初始化成功→空句柄失败→不可读，I2C初始化每个事务失败及重试也验证；修复后独立驱动检查返回0。未发现/声称新的硬件故障。
 
-### B13：共享旧观察时间误失效/假健康故障（10-07电脑复现、修复后两组回归通过）
+### B13：共享旧观察时间误失效/假健康故障（10-07电脑复现、修复后完整26组CI通过）
 
 Comm在保护外取now后被Motor抢占，Motor先更新last_progress，Comm随后用旧now作无符号年龄判断，可锁存假Motor故障。Display在I2C等待前取now，Sensor发布更晚采样后，Display可误清新数据。两场景根因是共享状态串行化却没有把时间采集放在同一边界；旧clock_repro在本次修改前实际运行确认0x02及新样本误清，无实机经历。
 
 最小修复在公共入口：AppTasks_HealthPoll及RobotState传感/电池过期、运动电源资格判断在各自短临界区内采tick，移除外部now参数，同步全部调用者。TaskHealth_Poll保留纯逻辑显式时间，由唯一AppTasks入口提供一致快照；不改期限、序号、采样时间、保护位或引入任务/依赖。只在Display重新取tick仍有抢占窗口；采用有符号年龄跳过大差值会隐藏真正非常旧数据，均未采用。
 
-回归直接测试生产AppTasks/RobotState，只在保护入口前注入Motor/采样的顺序更新，验证当前tick在保护内读取、正常超时仍触发、健康锁存、零时间、200/201ms和1500/1501ms边界、回绕及非常旧传感样本。两导出AppTasksInitChecks_Run和ClockRepro_Run已实际返回0；当前26组均严格编译但统一入口checks.dll被4551阻止。两端构建成功；完整26组、真实抢占/ISR/任务栈仍待验证，旧CI25组不覆盖本修复。
+回归直接测试生产AppTasks/RobotState，只在保护入口前注入Motor/采样的顺序更新，验证当前tick在保护内读取、正常超时仍触发、健康锁存、零时间、200/201ms和1500/1501ms边界、回绕及非常旧传感样本。两导出本地实际返回0；统一入口checks.dll被4551阻止。随后用户授权推送源码0de6f2a，[CI运行37615888159](https://github.com/xksszm-ux/water/actions/runs/37615888159)完整26组实际PASS、两端三个构建作业success，日志已核实。本机Smart App Control未解除，真实抢占/ISR/任务栈仍待验证；工具链/尺寸及本地与CI证据分列于software_checks/README.md。
 
 ### B14：BLE加密期限文档冲突（10-07静态确认并对齐）
 

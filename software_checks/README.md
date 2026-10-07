@@ -1,6 +1,6 @@
 # 软件验证记录
 
-更新：2026-10-07。项目未完成，未通过硬件验收。当前入口26组，本次实际结果见下文“10-07 F1/F2修复”；旧25组CI与20组数字为历史记录，不扩大成真实RTOS/硬件验证。本轮不访问串口、ST-Link或板卡。历史设备观察见[工程说明](../docs/ENGINEERING.md)第10节。
+更新：2026-10-07。项目未完成，未通过硬件验收。当前入口26组，源码0de6f2a的完整CI已通过，见下文“10-07 F1/F2交付CI”；旧25组CI与20组数字为历史记录，不扩大成真实RTOS/硬件验证。本轮不访问串口、ST-Link或板卡。历史设备观察见[工程说明](../docs/ENGINEERING.md)第10节。
 
 ## 唯一入口与复现
 
@@ -33,7 +33,28 @@ $env:PATH='C:/Users/12992/AppData/Local/stm32cube/bundles/gnu-tools-for-stm32/14
 
 ## 本轮实际结果
 
-### 10-07 F1/F2修复（尚未提交/推送）
+### 10-07 F1/F2交付CI（源码0de6f2a）
+
+用户授权使用现有CI后，核对远程main仍为163dafa，正常推送修复提交`0de6f2aca682011756dd0de03d27697b1056fb8f`，包含生产时间保护、全部调用者、回归及原3个审计文件。没有修改工作流、安装本机依赖、关闭安全设置或操作硬件。
+
+[运行37615888159](https://github.com/xksszm-ux/water/actions/runs/37615888159)是该提交的push/attempt1；北京时间19:42:22启动、19:45:25更新为completed/success，四个作业日志已逐一读取。不是旧25组结果，也不只看工作流配置。
+
+| 本次实际CI作业 | 结果与环境 |
+|---|---|
+| [host-checks](https://github.com/xksszm-ux/water/actions/runs/37615888159/job/112773986716) | Windows2022、CPython3.11.9、镜像LLVM；全部DLL以-Wall/-Wextra/-Werror编译，26条PASS和Software checks passed，包含ClockRepro_Run及扩展的AppTasks_Init保护边界 |
+| [STM32 Debug](https://github.com/xksszm-ux/water/actions/runs/37615888159/job/112773986646) | Ubuntu24.04、ARM GCC13.2.1，全新配置/构建成功；FLASH59804/65536 B、RAM17048/20480 B |
+| [STM32 Release](https://github.com/xksszm-ux/water/actions/runs/37615888159/job/112773986424) | 同一CI工具链，全新配置/构建成功；FLASH51452/65536 B、RAM17032/20480 B |
+| [ESP32](https://github.com/xksszm-ux/water/actions/runs/37615888159/job/112773986793) | 官方ESP-IDF v6.1容器、GCC15.2.0，全新构建成功；app503888 B（0x7b050）/1 MiB、bootloader26176 B（0x6640） |
+
+STM32 CI13.2.1与本机14.3.1数字分别记录，不宣称位级一致或性能提升。ESP32仍有5项SDK内部CMake依赖警告，Actions有Node弃用提示；没有修改SDK或屏蔽警告。CI运行现有run.py，未另行执行独立clock_repro.py或host_loader_checks.py；26组是生产逻辑检查组数，不是26个硬件用例。
+
+本机只读核查：VerifiedAndReputablePolicyState=1，19:22:31的checks.dll CodeIntegrity事件3077记录PolicyName=VerifiedAndReputableDesktop、Status=0xc0e90002，DLL为NotSigned，已确认Smart App Control处于执行模式。此前“具体策略未知”保留为当时读取受限的历史记录；不能据此推断启用日期。CI成功补齐运行证据，不解除本机4551。
+
+后续push/PR自动运行`.github/workflows/software.yml`；也可在仓库Actions → Software verification → Run workflow选择分支执行。每次核对head_sha及四个作业日志；本次通过不覆盖未来改动。本轮验证记录另作仅文档提交（`[skip ci]`），不重复构建相同生产源码/检查，被测版本仍为0de6f2a。
+
+电脑HAL/OS/NimBLE替身仍是顺序验证；实际RTOS抢占、多核、IRQ/DMA时序、栈峰值、RF/密码学、电气及机械停车均未由CI验证。BLE DRIVE拒绝、CAN/AUTO非零拒绝、UART内部路径与全局STOP保持原状，健康监管仍为诊断锁存，IWDG未启用。
+
+### 10-07 F1/F2修复（本地阶段，完整结果由上节CI补齐）
 
 按用户顺序修复共享旧时间误判及BLE期限文档。旧clock_repro.py在修改前实际运行：`REPRODUCED: healthy Motor falsely latched (0x02); newer sensor sample invalidated by older observer time.` 返回0是当时旧缺陷复现，不是修复通过。
 
@@ -47,7 +68,7 @@ AppTasks_HealthPoll和RobotState传感/电池过期、运动电源资格接口�
 | STM32 Debug/Release配置与增量构建 | 两者都重新编译受影响源并链接成功；ARM GCC14.3.1，Debug FLASH59008/RAM17048B，Release FLASH50576/RAM17032B |
 | ESP-IDF6.1 `idf.py build` | 增量成功，app0x7b050、bootloader0x6640；ESP32生产代码未改，SDK旧警告未修 |
 
-两组通过不等于26组全部通过，也不等于本机策略解除。没有反复重试已明确阻止的相同DLL、关闭保护、安装环境或上传本轮代码；历史CI37584729464仅验证旧基线。独立两模块的可复现入口如下（无需重新编译；先运行上述run.py生成DLL）：
+该本地阶段两组通过不等于26组全部通过，也不等于本机策略解除。当时没有反复重试已明确阻止的相同DLL、关闭保护、安装环境或上传本轮代码；随后新CI的26组结果见上节，历史CI37584729464仅验证旧基线。独立两模块的可复现入口如下（无需重新编译；先运行上述run.py生成DLL）：
 
 ```powershell
 @'

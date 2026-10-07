@@ -6,12 +6,12 @@
 
 ## 后续修复状态（2026-10-07）
 
-用户明确要求依次解决F1与F2；已完成软件修改，本地尚未提交/推送：
+用户明确要求依次解决F1与F2，随后授权推送并运行现有CI；修复源码已提交到main（0de6f2a）：
 
 1. F1：修改前旧clock_repro实际运行，确认0x02假Motor故障和新传感样本误清。修复AppTasks健康和RobotState传感/电池过期、运动电源资格入口，在各自短临界区内采tick，移除外部now参数并更新全部调用者；TaskHealth纯逻辑仍由AppTasks统一提供时间/心跳快照，不改期限或保护。修复后AppTasksInitChecks_Run和ClockRepro_Run单独实际返回0/PASS，覆盖保护前抢占、回绕、真实超期/锁存及新样本边界。
 2. F2：STEP10_BLE_PROTOCOL.md现与robot_ble.c既有30000ms一致，说明30秒到期发起STOP/断连、约200ms周期和GAP异步确认；ESP32生产代码/策略未改。
 
-当前26组均严格编译完成；统一入口加载checks.dll时4551、未进入全套断言。独立clock_app_tasks.dll也被阻止，随后执行统一入口已生成的app_tasks_init.dll和clock_repro.dll通过，系统保护未改，不能声称策略解除或26组全通过。STM32 Debug/Release重新编译链接、ESP-IDF6.1增量构建成功。可复现命令、工具/尺寸及限制统一见software_checks/README.md和ENGINEERING B13/B14。
+本地统一入口被4551阻止，仅两项回归实际通过。随后[CI运行37615888159](https://github.com/xksszm-ux/water/actions/runs/37615888159)对源码0de6f2a严格编译并实际执行全部26组，26条PASS及最终成功消息已核实；STM32 Debug/Release、ESP-IDF6.1全新构建均success，四个作业日志已读取。系统保护未改，本机Smart App Control拦截仍保留；可复现命令、工具/尺寸及限制统一见software_checks/README.md和ENGINEERING B13/B14。
 
 clock_repro.py及clock_repro_checks.c已由旧缺陷复现转为修复后回归，当前退出0表示回归通过。审计R1～R4尚未修改；真实抢占/ISR、栈、硬件停车仍待验。下面各节是修复前审计记录，不覆盖本节最新状态。
 

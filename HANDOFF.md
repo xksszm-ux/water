@@ -1,14 +1,14 @@
 # STM32 + ESP32 双主控机器人交接
 
-更新：2026-10-07。审计F1/F2已按用户要求依次修复；本地新改动尚未提交/推送。项目仍未完成、未通过硬件验收，不操作开发板。历史设备观察见docs/ENGINEERING.md第10节，最新结果见software_checks/README.md。
+更新：2026-10-07。审计F1/F2已修复并按用户授权推送，源码提交0de6f2a的完整26组及两端构建已在GitHub CI通过。项目仍未完成、未通过硬件验收，不操作开发板。历史设备观察见docs/ENGINEERING.md第10节，最新结果见software_checks/README.md。
 
 ## 1. 现在做什么？
 
-用户最新要求先解决审计F1共享旧时间误判，再解决F2加密期限文档冲突。AppTasks健康及RobotState传感/电池过期、运动电源资格判断现于各自临界区内取tick，公共接口不再接收外部now；全部调用者同步。BLE文档与现有30秒实现一致，没有改变蓝牙策略。
+用户最新要求使用现有GitHub CI完成本轮验证。F1共享旧时间误判和F2加密期限文档冲突已先后修复：AppTasks健康及RobotState传感/电池过期、运动电源资格判断现于各自临界区内取tick，公共接口不再接收外部now；全部调用者同步。BLE文档与现有30秒实现一致，没有改变蓝牙策略。
 
-修改前旧复现实际运行，确认假健康位0x02及新样本误清；修改后单独执行AppTasksInitChecks_Run和ClockRepro_Run均返回0。完整26组严格编译完成，但统一入口加载checks.dll时4551，尚未执行全套断言。STM32 Debug/Release重新编译链接成功，ESP-IDF6.1增量构建成功；没有硬件操作。
+修改前旧复现实际运行，确认假健康位0x02及新样本误清；修改后本地两项回归通过，但统一入口被4551阻止。随后[CI运行37615888159](https://github.com/xksszm-ux/water/actions/runs/37615888159)实际执行26组并全部PASS，STM32 Debug/Release及ESP-IDF6.1全新构建均success；已读四个作业日志，不依赖历史结果，没有硬件操作。
 
-GitHub已上传基线仍为163dafa（源码09c4869），远程https://github.com/xksszm-ux/water.git；其CI37584729464的旧25组及两端构建成功是历史基线证据，不能代替本次26组。保留审计前3个未跟踪文件，未提交/推送本轮改动。
+远程https://github.com/xksszm-ux/water.git的main已正常推送源码提交0de6f2aca682011756dd0de03d27697b1056fb8f，包含本轮修复、回归及原3个审计文件；旧163dafa/09c4869与25组CI保留为历史证据。最新CI源码以0de6f2a为准，后续验证记录提交只修改文档。
 
 ## 2. 已经完成了什么？
 
@@ -18,21 +18,21 @@ GitHub已上传基线仍为163dafa（源码09c4869），远程https://github.com
 - MPU6050失败初始化残留ready已电脑复现、修复及回归。PVD/电机、ADC DMA、超声波、I2C/SPI边界与完整BLE源码事件检查均保留生产逻辑。
 - CI实际完成STM32 Debug/Release和ESP-IDF6.1全新构建，工具链/尺寸/警告统一记录在验证README；ARM GCC13.2.1 CI与本机14.3.1产物分开，不宣称位级一致。
 - PATH工具选择、固定路径移除、工作流以及完整源码/测试/说明已提交并推送；构建产物与本机sdkconfig被忽略。
-- DLL加载4551显示BLOCKED、路径及未开始运行，失败退出。只在加载期间设置线程SEM_FAILCRITICALERRORS并finally恢复，防止Bad Image弹窗挂起；Python诊断回归和真实阻止返回已验证，不更改系统策略、不计入25组C检查。
-- F1两组生产回归已运行通过：进入保护前的Motor/采样更新、计数回绕、200/201ms传感和1500/1501ms电池边界、真实Motor超期与锁存；不是实际抢占/ISR运行。旧clock_repro现为修复后回归，退出0表示通过，不再表示旧bug被复现。统一入口新增该组，现为26组。
+- DLL加载4551显示BLOCKED、路径及未开始运行，失败退出。只在加载期间设置线程SEM_FAILCRITICALERRORS并finally恢复，防止Bad Image弹窗挂起；Python诊断回归和真实阻止返回已验证，不更改系统策略、不计入C检查组数。
+- F1两组生产回归本地通过，随后完整26组在本次CI通过：进入保护前的Motor/采样更新、计数回绕、200/201ms传感和1500/1501ms电池边界、真实Motor超期与锁存；不是实际抢占/ISR运行。旧clock_repro现为修复后回归，退出0表示通过，不再表示旧bug被复现。
 - F2只更新STEP10_BLE_PROTOCOL.md的10→30秒说明，保留现有约200ms周期检查和GAP断连确认。
 
 ## 3. 卡在哪里？
 
-- 本机仍有CodeIntegrity/4551与沙箱lld-link权限问题，历史审批也曾超时；本次完整26组在checks.dll加载阶段被阻止。独立构建clock_app_tasks.dll也被阻止；随后单独执行统一入口生成的app_tasks_init.dll和clock_repro.dll通过，不能据此断言系统策略解除。旧CI25组不覆盖本次API/检查修改。
-- 截图0xC0E90002经微软定义和RtlNtStatusToDosError确认对应4551；DLL签名NotSigned、3077同路径拒绝。具体策略读取被拒绝，不能断言是企业策略或Smart App Control。CI成功不意味着本机DLL已放行。
+- 本机仍有CodeIntegrity/4551与沙箱lld-link权限问题，历史审批也曾超时；本地26组在checks.dll加载阶段被阻止。独立构建clock_app_tasks.dll也被阻止，部分其他DLL可执行；CI已补齐本版本完整检查，不表示本机策略解除。
+- 后续只读核查已确认Smart App Control：VerifiedAndReputablePolicyState=1，19:22:31的checks.dll事件3077含PolicyName=VerifiedAndReputableDesktop、Status=0xc0e90002；测试DLL为NotSigned。此前“策略未知”属于历史读取受限时点。没有更改Windows安全设置，也没有证据确定策略何时开启。
 - 首次上传本地领先5个提交、远程无新提交，正常push成功。匿名REST读取曾受共享IP限流，后通过已连接GitHub工具取得实际CI作业/日志；该限流不影响已完成的CI结果。
 - 真实抢占/多核、NVIC/DMA时序、NimBLE/RF/密码学、物理总线/采样精度/PVD响应、栈峰值、CPU负载、机械停车和长稳仍未验。
 - 完整手机诊断、日志导出、健康故障处置仍部分完成；BLE运动、避障、编码器PID、OTA未实现，IWDG未启用。
 
 ## 4. 下一步做什么？
 
-1. git status --short，读本文、README、工程说明及验证README，保护未提交/未跟踪改动。在获准环境运行现有software_checks/run.py完成本次26组；未经新授权不自动推送或处理Windows策略，不把历史CI当作新版本结果。
+1. git status --short，读本文、README、工程说明及验证README，保护已有改动。后续软件修改继续复用现有CI：push/PR自动执行，Actions的Software verification也可手动运行；核对运行head_sha并读取日志。当前26组缺口已补齐；新的修改不能沿用本次结果，未经新授权不处理Windows策略。
 2. F1/F2实现已处理，真实RTOS仍待验；其余审计R1～R4尚未修改。下一轮先明确关键任务停摆处置及Storage栈风险的范围，再推进诊断/日志等功能；运动/导航/PID/OTA另行定义。继续保留STOP-only，健康期限是静态预算。
 3. 本机App Control故障单独保留，只有用户明确要求处理环境才继续；CI运行不要求关闭本机保护或安装Linux。不运行hardware脚本，保留上级副本。
 
