@@ -13,6 +13,8 @@
 *.a
 *.lib
 *.dll
+__pycache__/
+*.pyc
 
 # Generated/local configuration
 stm32/mx.scratch/

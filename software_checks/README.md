@@ -35,7 +35,7 @@ $env:PATH='C:/Users/12992/AppData/Local/stm32cube/bundles/gnu-tools-for-stm32/14
 
 ### 10-07补测与交付状态
 
-新增五组（总25组）的完整C源码已编译，五组分别调用检查入口返回0，使用-Wall -Wextra -Werror。随后在BLE组追加STOP通知失败、GATT新鲜/过期反馈和意外Host退出等小用例，最终复测因自动审批连续两次超时尚未执行；不能把初版结果冒充最终全部通过。
+新增五组（总25组）的完整C源码已编译，五组分别调用检查入口返回0，使用-Wall -Wextra -Werror。随后在BLE组追加STOP通知失败、GATT新鲜/过期反馈和意外Host退出等小用例，该最终C检查文件又单独编译成功；最终运行复测因自动审批连续两次超时尚未执行，不能把初版结果冒充最终全部通过。run.py也通过Python语法编译检查。
 
 | 新增入口 | 已执行的主要场景与边界 |
 |---|---|
@@ -50,6 +50,8 @@ $env:PATH='C:/Users/12992/AppData/Local/stm32cube/bundles/gnu-tools-for-stm32/14
 本机统一入口先编译全部DLL再加载，曾在app_tasks_init/power_motor/drivers.dll处被Windows CodeIntegrity事件3077拦截，Python报WinError4551；独立五组读取成功不代表统一入口成功。没有关闭防护、修改签名策略或换文件名躲避审核。最后启动复测的自动审批连续两次超时，并未给出风险判定；已请求用户指导。
 
 [GitHub工作流](../.github/workflows/software.yml)在push/PR执行原Windows检查、Ubuntu STM32 Debug/Release及官方ESP-IDF v6.1构建。不烧录、不部署；最终提交和CI结果以HANDOFF及实际运行记录为准。源码/文档已准备不等于已经提交/上传。
+
+交付基线已本地提交022c551，分类移动被Git识别为重命名，原先未跟踪的源码/检查/文档均已纳入。推送的沙箱网络失败，随后沙箱外正常push自动审批连续两次超时，实际推送尚未启动；CI未运行。用户最新选择先保留本地提交，本轮停止推送；后续只有明确恢复上传才重新核对远程并推送。不关闭Windows保护、不force推送。
 
 ### 10-05及更早历史记录
 

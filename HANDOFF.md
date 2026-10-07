@@ -4,7 +4,7 @@
 
 ## 1. 现在做什么？
 
-按用户要求补PVD/电机寄存器、ADC DMA、超声波、I2C/SPI及完整BLE/GATT生命周期的生产代码检查，然后更新交付并提交/推送GitHub。唯一主工程为本仓库；远程origin为https://github.com/xksszm-ux/water.git，分支main。提交/推送状态仍须核对git status和远程，不以本文准备状态当作上传成功。
+按用户要求补PVD/电机寄存器、ADC DMA、超声波、I2C/SPI及完整BLE/GATT生命周期的生产代码检查，整理本地交付。唯一主工程为本仓库；远程origin为https://github.com/xksszm-ux/water.git，分支main。源码/检查/CI基线已本地提交022c551；后续交接与忽略规则补记另有提交，以git log/status为准。用户最新选择“先保留本地提交”，本轮不再推送GitHub，CI未启动。
 
 ## 2. 已经完成了什么？
 
@@ -20,14 +20,15 @@
 
 - 本机Windows CodeIntegrity事件3077确认应用控制策略间歇拦截新DLL，返回WinError 4551；未更改签名策略/防护设置。全部检查C源码在最后一轮扩展之前已以-Wall -Wextra -Werror编译，五组新增检查独立通过，但最终统一入口没有完成。
 - 最后一次复测启动又被自动审批连续两次超时拒绝，返回未判定操作不安全；已向用户请求明确批准。最后追加用例不声称执行通过。后续先核对待答与CI实际结果，不能无限重试或绕过系统策略。
+- GitHub默认沙箱网络无法连接443；沙箱外正常push的自动审批也连续两次超时，没有启动实际推送。随后用户选择先保留本地提交，当前推送停止，不能把本地提交当作远程交付。GitHub连接器读取也曾报HTTP传输失败。
 - 真实RTOS抢占、多核互斥、NVIC/DMA时序、NimBLE协议栈/加密/RF、物理I2C/SPI恢复、PVD响应、栈峰值、CPU负载、机械停车及长稳仍未验证。
 - 功能缺口仍有完整手机诊断、日志导出、任务健康故障处置策略；BLE运动、避障、编码器PID和OTA未实现。它们不属于本轮补测范围。
 
 ## 4. 下一步做什么？
 
-1. git status --short，读本文件、README、docs/ENGINEERING.md及software_checks/README.md。检查用户对复测的回复；运行最终25组检查，记录失败/阻塞，不访问hardware脚本。
+1. git status --short，读本文件、README、docs/ENGINEERING.md及software_checks/README.md。最终软件复测的明确批准请求仍待答；获得批准后再重试被拦截的沙箱外复测。运行最终25组检查，记录失败/阻塞，不访问hardware脚本。
 2. 核对所有交付路径、文档链接、生成物/敏感文件排除及git diff --check。已有未提交的分类迁移和源码一起作为主工程交付，保留上级副本。
-3. 按用户明确授权提交本仓库并正常推送origin/main，不使用force。已fetch确认本地HEAD与origin/main相同；推送前后再核对。检查GitHub Actions实际作业，发现失败修复并重跑；通过后更新持久验证记录及交接。
+3. 本仓库已提交；用户当前要求保留本地，只有后续明确恢复上传才推送origin/main，不使用force。首次fetch时HEAD与origin/main相同，新增本地提交后尚未上传；届时推送前后再核对，检查GitHub Actions实际作业，发现失败修复并重跑，再更新持久记录。
 4. 后续软件开发先选择手机完整诊断、日志导出或任务健康处置之一，沿生产链补小检查；运动/导航/PID/OTA另行定义范围。IWDG继续关闭，健康期限仍是静态预算。
 
 ## 5. 哪些坑不要踩？
