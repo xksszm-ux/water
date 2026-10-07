@@ -9,6 +9,7 @@ import os
 from pathlib import Path
 import shutil
 import subprocess
+import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 BUILD = ROOT / "software_checks/build"
@@ -40,16 +41,33 @@ def check(condition, message):
 
 
 def load_check_library(path):
+    # Report loader failures to this CLI, without a modal Bad Image box.
+    # This changes only current-thread error reporting, not App Control policy.
+    kernel = c.WinDLL("kernel32", use_last_error=True)
+    kernel.GetThreadErrorMode.argtypes = []
+    kernel.GetThreadErrorMode.restype = c.c_uint32
+    kernel.SetThreadErrorMode.argtypes = [c.c_uint32, c.POINTER(c.c_uint32)]
+    kernel.SetThreadErrorMode.restype = c.c_int
+    previous = c.c_uint32()
+    if not kernel.SetThreadErrorMode(kernel.GetThreadErrorMode() | 1, c.byref(previous)):
+        raise c.WinError(c.get_last_error())
     try:
-        return c.CDLL(str(path))
-    except OSError as error:
-        if getattr(error, "winerror", None) != 4551:
-            raise
-        raise SystemExit(
-            f"BLOCKED: Windows application control rejected {path} (WinError 4551).\n"
-            "C compilation completed; runtime checks have not started.\n"
-            "Use an approved development environment or ask its administrator to review signing/policy."
-        ) from None
+        try:
+            return c.CDLL(str(path))
+        except OSError as error:
+            if getattr(error, "winerror", None) != 4551:
+                raise
+            raise SystemExit(
+                f"BLOCKED: Windows application control rejected {path} (WinError 4551).\n"
+                "C compilation completed; runtime checks have not started.\n"
+                "Use an approved development environment or ask its administrator to review signing/policy."
+            ) from None
+    finally:
+        if not kernel.SetThreadErrorMode(previous.value, None):
+            failure = c.WinError(c.get_last_error())
+            if sys.exc_info()[0] is None:
+                raise failure
+            print(f"ERROR restoring DLL-load thread reporting mode: {failure}", file=sys.stderr)
 
 
 BUILD.mkdir(parents=True, exist_ok=True)

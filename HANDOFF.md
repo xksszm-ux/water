@@ -15,12 +15,13 @@
 - 本次STM32 Debug/Release配置、重新链接成功：FLASH 59028/50592 B，RAM 17048/17032 B。ESP-IDF 6.1增量构建成功，app 503888 B，bootloader 26176 B。构建不是硬件验收。
 - 检查优先采用PATH中的LLVM，可用ROBOT_HOST_CLANG/ROBOT_HOST_LINK覆盖；旧本机路径仅作fallback。STM32 preset移除固定工具目录，使用PATH ARM GCC/Ninja；实际本机构建已验证。
 - 已添加.github/workflows/software.yml：Windows主机检查、STM32 Debug/Release、ESP-IDF 6.1自动构建；尚不能仅凭文件存在宣称CI通过。
-- DLL加载入口现在对4551显示BLOCKED、目标路径及“运行检查尚未开始”，失败退出，不跳过检查或生成PASS。独立Python回归startup/host_loader_checks.py验证成功加载、4551诊断和其他错误原样传播，已运行通过；它不是25组生产C验证。
+- DLL加载入口对4551显示BLOCKED、目标路径及“运行检查尚未开始”，失败退出，不跳过检查或生成PASS。仅加载期间用SetThreadErrorMode加SEM_FAILCRITICALERRORS，finally恢复旧线程模式，防止Bad Image弹窗挂住CLI；不改系统策略。独立Python回归startup/host_loader_checks.py覆盖原有模式位、成功/4551/126/中断的恢复、设置/恢复失败及主异常优先，已通过；真实被拦DLL也直接返回BLOCKED/退出1，不需点击新弹窗。这些不是25组生产C验证。
 
 ## 3. 卡在哪里？
 
 - 本机Windows CodeIntegrity事件3077确认应用控制策略间歇拦截新DLL，返回WinError 4551；未更改签名策略/防护设置。全部检查C源码在最后一轮扩展之前已以-Wall -Wextra -Werror编译，五组新增检查独立通过，但最终统一入口没有完成。
 - 用户管理员PowerShell截图确认所有DLL编译完成后在app_tasks_init.dll加载处失败；本轮单独ctypes.CDLL加载同路径又复现4551。Authenticode显示NotSigned，3077记录同文件的策略拒绝；具体生效策略读取被拒绝，不能仅凭通用日志断言是企业策略或Smart App Control。新提示的注入回归通过，实际系统阻止没有解除。
+- 新截图Bad Image状态0xC0E90002为STATUS_SYSTEM_INTEGRITY_POLICY_VIOLATION；已用系统RtlNtStatusToDosError确认映射4551，通用“损坏的映像”标题不能替代状态码判定。真实加载已不再等待弹窗，但应用控制仍拒绝DLL，最终C运行缺口保留。
 - 用户已于10-07明确批准软件复测。批准后沙箱外复测及允许的一次重试仍被自动审批超时拒绝，均未启动脚本；保持原沙箱限制运行则在lld-link返回Permission denied，连其--version也失败。不存在等待用户再次批准的问题，当前是执行环境阻塞；没有新的运行通过结果，不无限重试或绕过策略。
 - GitHub默认沙箱网络无法连接443；沙箱外正常push的自动审批也连续两次超时，没有启动实际推送。随后用户选择先保留本地提交，当前推送停止，不能把本地提交当作远程交付。GitHub连接器读取也曾报HTTP传输失败。
 - 真实RTOS抢占、多核互斥、NVIC/DMA时序、NimBLE协议栈/加密/RF、物理I2C/SPI恢复、PVD响应、栈峰值、CPU负载、机械停车及长稳仍未验证。

@@ -55,9 +55,15 @@ $env:PATH='C:/Users/12992/AppData/Local/stm32cube/bundles/gnu-tools-for-stm32/14
 
 用户随后在管理员PowerShell自行运行，截图显示全部DLL编译成功，但加载app_tasks_init.dll时返回4551。本轮最小复现命令为 `python -c "import ctypes; ctypes.CDLL(r'C:/Users/12992/Desktop/Experiment1/stm32-esp32-freertos-robot/software_checks/build/app_tasks_init.dll')"`（实际使用上述SDK Python路径），返回相同4551。Authenticode检查为NotSigned，CodeIntegrity事件3077记录同路径拒绝；[微软诊断说明](https://learn.microsoft.com/en-us/windows/security/application-security/application-control/app-control-for-business/operations/appcontrol-debugging-and-troubleshooting)将3077定义为生效策略阻止事件。读取具体策略的CiTool查询返回Access denied，不能据此推断实际策略类型。
 
-按用户“先只完善错误提示和交接记录”的要求，所有9个库统一走生产load_check_library：4551输出BLOCKED/完整路径/尚未开始运行检查并退出1，其他OSError保持原样。新增Python检查直接从run.py抽取该生产函数，只替换OS加载边界；成功、4551失败与126等其他错误三个场景均通过。运行命令为 `python software_checks/startup/host_loader_checks.py`，无需Clang或外设；这是工具诊断回归，**不增加25组C检查的通过数**。
+按用户“先只完善错误提示和交接记录”的要求，所有9个库统一走生产load_check_library：4551输出BLOCKED/完整路径/尚未开始运行检查并退出1，其他OSError保持原样。新增Python检查直接从run.py抽取该生产函数，只替换OS加载边界。运行命令为 `python software_checks/startup/host_loader_checks.py`，无需Clang或外设；这是工具诊断回归，**不增加25组C检查的通过数**。
 
 新加载提示的真实DLL尝试没有及时完成，已中止该本轮诊断进程，不能把空的loader_diagnostic_20261007.log作为运行成功证据；确定的真实复现来自前述最小命令与用户截图，确定的提示验证来自Python注入回归。未修改系统安全设置、签名信任或固件逻辑，未安装WSL/Docker，未新增Linux检查入口，未上传GitHub。合法测试环境/签名策略处理须后续明确范围，当前系统阻止及最终25组运行缺口仍保留。
+
+随后用户提供python.exe“损坏的映像”弹窗，状态0xC0E90002。已对照[微软NTSTATUS定义](https://github.com/microsoft/win32metadata/blob/main/generation/WinSDK/RecompiledIdlHeaders/shared/ntstatus.h)确认其为STATUS_SYSTEM_INTEGRITY_POLICY_VIOLATION，并用系统RtlNtStatusToDosError实际确认对应4551；不把通用标题误判成DLL格式损坏。上次诊断等待弹窗与该截图一致，但没有证据证明历史所有等待都只来自此弹窗。
+
+load_check_library现在只在当前线程加载期间OR SEM_FAILCRITICALERRORS，保留其他位，finally恢复setter返回的旧模式；设置失败不加载，恢复失败在正常返回时导致失败，存在原加载异常时记录恢复错误并保留主异常。依据[微软SetThreadErrorMode文档](https://learn.microsoft.com/windows/win32/api/errhandlingapi/nf-errhandlingapi-setthreaderrormode)和[DLL加载弹窗说明](https://devblogs.microsoft.com/oldnewthing/20240208-00/?p=109374)，只调整错误呈现，不更改应用控制/签名信任。
+
+本轮Python注入回归通过：旧模式0/2/1/3、成功/4551/126/KeyboardInterrupt均保留和恢复原模式；设置失败在CDLL之前退出；恢复失败不掩盖主异常。另对真实app_tasks_init.dll执行生产加载函数（测试AST抽取同一函数，未重复实现），20秒超时保护下自行返回BLOCKED/4551/退出1，无Traceback、不等待点击新弹窗，父线程模式不变。真实阻止仍在、没有C测试断言运行，不计入25组通过数；完整入口仍受构建工具和系统策略限制。
 
 [GitHub工作流](../.github/workflows/software.yml)在push/PR执行原Windows检查、Ubuntu STM32 Debug/Release及官方ESP-IDF v6.1构建。不烧录、不部署；最终提交和CI结果以HANDOFF及实际运行记录为准。源码/文档已准备不等于已经提交/上传。
 
