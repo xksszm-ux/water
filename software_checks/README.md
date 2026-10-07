@@ -53,6 +53,12 @@ $env:PATH='C:/Users/12992/AppData/Local/stm32cube/bundles/gnu-tools-for-stm32/14
 
 最后追加用例已再次对照生产CommandAccess/StatusAccess/CanFeedbackAccess/HostTask及状态编码字段，未发现明显预期冲突；这是静态核对，不是执行通过。新鲜/过期UART快照由替身返回，因此该GATT组验证读取与载荷呈现，不重新证明真实接收任务或500/3000 ms过期计时；这些生产策略另有既有检查，真实链路仍待验。
 
+用户随后在管理员PowerShell自行运行，截图显示全部DLL编译成功，但加载app_tasks_init.dll时返回4551。本轮最小复现命令为 `python -c "import ctypes; ctypes.CDLL(r'C:/Users/12992/Desktop/Experiment1/stm32-esp32-freertos-robot/software_checks/build/app_tasks_init.dll')"`（实际使用上述SDK Python路径），返回相同4551。Authenticode检查为NotSigned，CodeIntegrity事件3077记录同路径拒绝；[微软诊断说明](https://learn.microsoft.com/en-us/windows/security/application-security/application-control/app-control-for-business/operations/appcontrol-debugging-and-troubleshooting)将3077定义为生效策略阻止事件。读取具体策略的CiTool查询返回Access denied，不能据此推断实际策略类型。
+
+按用户“先只完善错误提示和交接记录”的要求，所有9个库统一走生产load_check_library：4551输出BLOCKED/完整路径/尚未开始运行检查并退出1，其他OSError保持原样。新增Python检查直接从run.py抽取该生产函数，只替换OS加载边界；成功、4551失败与126等其他错误三个场景均通过。运行命令为 `python software_checks/startup/host_loader_checks.py`，无需Clang或外设；这是工具诊断回归，**不增加25组C检查的通过数**。
+
+新加载提示的真实DLL尝试没有及时完成，已中止该本轮诊断进程，不能把空的loader_diagnostic_20261007.log作为运行成功证据；确定的真实复现来自前述最小命令与用户截图，确定的提示验证来自Python注入回归。未修改系统安全设置、签名信任或固件逻辑，未安装WSL/Docker，未新增Linux检查入口，未上传GitHub。合法测试环境/签名策略处理须后续明确范围，当前系统阻止及最终25组运行缺口仍保留。
+
 [GitHub工作流](../.github/workflows/software.yml)在push/PR执行原Windows检查、Ubuntu STM32 Debug/Release及官方ESP-IDF v6.1构建。不烧录、不部署；最终提交和CI结果以HANDOFF及实际运行记录为准。源码/文档已准备不等于已经提交/上传。
 
 交付基线已本地提交022c551，分类移动被Git识别为重命名，原先未跟踪的源码/检查/文档均已纳入。推送的沙箱网络失败，随后沙箱外正常push自动审批连续两次超时，实际推送尚未启动；CI未运行。用户最新选择先保留本地提交，本轮停止推送；后续只有明确恢复上传才重新核对远程并推送。不关闭Windows保护、不force推送。

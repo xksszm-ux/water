@@ -39,6 +39,19 @@ def check(condition, message):
         raise AssertionError(message)
 
 
+def load_check_library(path):
+    try:
+        return c.CDLL(str(path))
+    except OSError as error:
+        if getattr(error, "winerror", None) != 4551:
+            raise
+        raise SystemExit(
+            f"BLOCKED: Windows application control rejected {path} (WinError 4551).\n"
+            "C compilation completed; runtime checks have not started.\n"
+            "Use an approved development environment or ask its administrator to review signing/policy."
+        ) from None
+
+
 BUILD.mkdir(parents=True, exist_ok=True)
 # Only declarations: implementations come from Windows, never mocked algorithms.
 (BUILD / "string.h").write_text("""#include <stddef.h>
@@ -165,11 +178,11 @@ peripheral_checks.append((build_boundary_checks("esp_ble",
 # Finish every compile/link before loading checks. A host execution-policy
 # failure must not leave later production sources uncompiled.
 print("All software check DLLs compiled with -Wall -Wextra -Werror.")
-dll = c.CDLL(str(BUILD / "checks.dll"))
-init_dll = c.CDLL(str(BUILD / "app_tasks_init.dll"))
-driver_dll = c.CDLL(str(driver_dll))
-esp_start_dll = c.CDLL(str(esp_start_dll))
-peripheral_checks = [(c.CDLL(str(path)), name) for path, name in peripheral_checks]
+dll = load_check_library(BUILD / "checks.dll")
+init_dll = load_check_library(BUILD / "app_tasks_init.dll")
+driver_dll = load_check_library(driver_dll)
+esp_start_dll = load_check_library(esp_start_dll)
+peripheral_checks = [(load_check_library(path), name) for path, name in peripheral_checks]
 
 
 def fn(name, result, *args):
