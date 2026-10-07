@@ -1,38 +1,34 @@
 # STM32 + ESP32 双主控机器人交接
 
-更新：2026-10-07。只进行软件检查、固件构建和Git交付，不操作开发板。历史设备观察及限制在docs/ENGINEERING.md第10节；当前验证在software_checks/README.md。
+更新：2026-10-07。软件验证与GitHub交付已补齐；项目仍未完成、未通过硬件验收，不操作开发板。历史设备观察见docs/ENGINEERING.md第10节，最新结果见software_checks/README.md。
 
 ## 1. 现在做什么？
 
-用户最新选择“先只完善错误提示和交接记录”。本轮只改主机检查的DLL加载提示和记录，不安装Linux、不更改Windows策略；之前的驱动/BLE补测仍保留待最终运行状态。唯一主工程为本仓库；远程origin为https://github.com/xksszm-ux/water.git，分支main。已有本地提交022c551/68047d3/e921443，最新以git log/status为准；继续保留本地，不推送GitHub，CI未启动。
+用户最新要求“上传一下github”，已覆盖此前只保留本地的选择。主工程5个本地提交已正常推送origin/main，源码基线09c4869；远程为https://github.com/xksszm-ux/water.git。GitHub运行37584729464四个作业均success，主机实际日志确认25组PASS及最终GATT用例通过。未安装Linux、不更改本机Windows策略，不操作硬件。
 
 ## 2. 已经完成了什么？
 
-- 双端UART V1、STOP优先与旧命令失效、控制仲裁、过期数据、重连握手、0x82诊断及0x83 CAN反馈已经形成软件链；BLE DRIVE、CAN/AUTO非零运动仍拒绝。
-- 按职责迁移45个文件，构建及include引用同步；STM32有27个应用/自编驱动C文件，ESP32有9个C文件。ESP32基线为官方ESP-IDF 6.1，tick为10 ms；STM32为1 ms。
-- 原20组检查保留，新增PowerMotorChecks_Run、AdcDmaChecks_Run、UltrasonicChecks_Run、I2cSpiChecks_Run、EspBleChecks_Run，合计25组。新增五组初版已分别运行返回0；ADC/超声波/SPI扩展边界已包括在该独立结果中。随后追加的GATT新鲜反馈、STOP通知失败等小用例仍等待最终复测，详见验证记录。
-- 实际复现MPU6050_Init(NULL)在先前成功后保留ready，已在共同初始化入口先清ready，回归通过；生产调用者均已核对。不是实机故障经历。
-- 本次STM32 Debug/Release配置、重新链接成功：FLASH 59028/50592 B，RAM 17048/17032 B。ESP-IDF 6.1增量构建成功，app 503888 B，bootloader 26176 B。构建不是硬件验收。
-- 检查优先采用PATH中的LLVM，可用ROBOT_HOST_CLANG/ROBOT_HOST_LINK覆盖；旧本机路径仅作fallback。STM32 preset移除固定工具目录，使用PATH ARM GCC/Ninja；实际本机构建已验证。
-- 已添加.github/workflows/software.yml：Windows主机检查、STM32 Debug/Release、ESP-IDF 6.1自动构建；尚不能仅凭文件存在宣称CI通过。
-- DLL加载入口对4551显示BLOCKED、目标路径及“运行检查尚未开始”，失败退出，不跳过检查或生成PASS。仅加载期间用SetThreadErrorMode加SEM_FAILCRITICALERRORS，finally恢复旧线程模式，防止Bad Image弹窗挂住CLI；不改系统策略。独立Python回归startup/host_loader_checks.py覆盖原有模式位、成功/4551/126/中断的恢复、设置/恢复失败及主异常优先，已通过；真实被拦DLL也直接返回BLOCKED/退出1，不需点击新弹窗。这些不是25组生产C验证。
+- 双端UART V1、STOP优先与旧命令失效、仲裁、数据过期、重连握手、0x82诊断及0x83 CAN反馈形成软件链。BLE DRIVE、CAN/AUTO非零运动继续拒绝。
+- 45个文件已按职责分类，构建/include同步；STM32有27个应用/自编驱动C文件，ESP32有9个。基线ESP-IDF6.1，STM32/ESP32 tick分别1/10 ms。
+- 原20组与5组新生产驱动/BLE检查共25组，最终版本在Windows2022 CI完整通过，包括最后的GATT新鲜反馈、STOP通知失败及Host退出用例。顺序HAL/OS替身不证明实际RTOS/外设效果。
+- MPU6050失败初始化残留ready已电脑复现、修复及回归。PVD/电机、ADC DMA、超声波、I2C/SPI边界与完整BLE源码事件检查均保留生产逻辑。
+- CI实际完成STM32 Debug/Release和ESP-IDF6.1全新构建，工具链/尺寸/警告统一记录在验证README；ARM GCC13.2.1 CI与本机14.3.1产物分开，不宣称位级一致。
+- PATH工具选择、固定路径移除、工作流以及完整源码/测试/说明已提交并推送；构建产物与本机sdkconfig被忽略。
+- DLL加载4551显示BLOCKED、路径及未开始运行，失败退出。只在加载期间设置线程SEM_FAILCRITICALERRORS并finally恢复，防止Bad Image弹窗挂起；Python诊断回归和真实阻止返回已验证，不更改系统策略、不计入25组C检查。
 
 ## 3. 卡在哪里？
 
-- 本机Windows CodeIntegrity事件3077确认应用控制策略间歇拦截新DLL，返回WinError 4551；未更改签名策略/防护设置。全部检查C源码在最后一轮扩展之前已以-Wall -Wextra -Werror编译，五组新增检查独立通过，但最终统一入口没有完成。
-- 用户管理员PowerShell截图确认所有DLL编译完成后在app_tasks_init.dll加载处失败；本轮单独ctypes.CDLL加载同路径又复现4551。Authenticode显示NotSigned，3077记录同文件的策略拒绝；具体生效策略读取被拒绝，不能仅凭通用日志断言是企业策略或Smart App Control。新提示的注入回归通过，实际系统阻止没有解除。
-- 新截图Bad Image状态0xC0E90002为STATUS_SYSTEM_INTEGRITY_POLICY_VIOLATION；已用系统RtlNtStatusToDosError确认映射4551，通用“损坏的映像”标题不能替代状态码判定。真实加载已不再等待弹窗，但应用控制仍拒绝DLL，最终C运行缺口保留。
-- 用户已于10-07明确批准软件复测。批准后沙箱外复测及允许的一次重试仍被自动审批超时拒绝，均未启动脚本；保持原沙箱限制运行则在lld-link返回Permission denied，连其--version也失败。不存在等待用户再次批准的问题，当前是执行环境阻塞；没有新的运行通过结果，不无限重试或绕过策略。
-- GitHub默认沙箱网络无法连接443；沙箱外正常push的自动审批也连续两次超时，没有启动实际推送。随后用户选择先保留本地提交，当前推送停止，不能把本地提交当作远程交付。GitHub连接器读取也曾报HTTP传输失败。
-- 真实RTOS抢占、多核互斥、NVIC/DMA时序、NimBLE协议栈/加密/RF、物理I2C/SPI恢复、PVD响应、栈峰值、CPU负载、机械停车及长稳仍未验证。
-- 功能缺口仍有完整手机诊断、日志导出、任务健康故障处置策略；BLE运动、避障、编码器PID和OTA未实现。它们不属于本轮补测范围。
+- 本机仍有CodeIntegrity/4551与沙箱lld-link权限问题，历史审批也曾超时；本机统一入口仍未运行到底。但最终25组已在独立CI环境实际通过，软件运行证据缺口已经补齐，不把本机故障扩大为代码未验证。
+- 截图0xC0E90002经微软定义和RtlNtStatusToDosError确认对应4551；DLL签名NotSigned、3077同路径拒绝。具体策略读取被拒绝，不能断言是企业策略或Smart App Control。CI成功不意味着本机DLL已放行。
+- 首次上传本地领先5个提交、远程无新提交，正常push成功。匿名REST读取曾受共享IP限流，后通过已连接GitHub工具取得实际CI作业/日志；该限流不影响已完成的CI结果。
+- 真实抢占/多核、NVIC/DMA时序、NimBLE/RF/密码学、物理总线/采样精度/PVD响应、栈峰值、CPU负载、机械停车和长稳仍未验。
+- 完整手机诊断、日志导出、健康故障处置仍部分完成；BLE运动、避障、编码器PID、OTA未实现，IWDG未启用。
 
 ## 4. 下一步做什么？
 
-1. git status --short，读本文件、README、docs/ENGINEERING.md及software_checks/README.md。软件复测已获批准，但用户自己的管理员终端也被系统策略拦截，重复提权/重跑不能当作解决方案。当前仅完善提示与记录；待后续明确选择合规可执行的测试环境，再运行最终25组。保留Windows保护，不访问hardware脚本。
-2. 核对所有交付路径、文档链接、生成物/敏感文件排除及git diff --check。已有未提交的分类迁移和源码一起作为主工程交付，保留上级副本。
-3. 本仓库已提交；用户当前要求保留本地，只有后续明确恢复上传才推送origin/main，不使用force。首次fetch时HEAD与origin/main相同，新增本地提交后尚未上传；届时推送前后再核对，检查GitHub Actions实际作业，发现失败修复并重跑，再更新持久记录。
-4. 后续软件开发先选择手机完整诊断、日志导出或任务健康处置之一，沿生产链补小检查；运动/导航/PID/OTA另行定义范围。IWDG继续关闭，健康期限仍是静态预算。
+1. git status --short，读本文、README、工程说明及验证README，核对最新提交/CI。最终25组复测和GitHub交付已完成，不重复当作待办。
+2. 后续软件开发先选择完整诊断到手机、日志导出或健康故障处置之一，沿生产调用链补小检查；运动/导航/PID/OTA另行定义范围。继续保留STOP-only，健康期限是静态预算。
+3. 本机App Control故障单独保留，只有用户明确要求处理环境才继续；CI运行不要求关闭本机保护或安装Linux。不运行hardware脚本，保留上级副本。
 
 ## 5. 哪些坑不要踩？
 

@@ -33,7 +33,22 @@ $env:PATH='C:/Users/12992/AppData/Local/stm32cube/bundles/gnu-tools-for-stm32/14
 
 ## 本轮实际结果
 
-### 10-07补测与交付状态
+### 10-07 GitHub交付与最终CI验证
+
+用户重新授权上传后，fetch确认本地领先5个提交、远程未新增提交，正常push将main从f6001ae更新至09c4869。GitHub运行[37584729464](https://github.com/xksszm-ux/water/actions/runs/37584729464)（push，attempt1，源码09c4869）四个作业均success；北京时间15:00:39启动、15:03:23完成。已读取实际作业日志，不仅检查工作流配置或提交状态。
+
+| 实际CI作业 | 执行结果与环境 |
+|---|---|
+| [host-checks](https://github.com/xksszm-ux/water/actions/runs/37584729464/job/112672161676) | Windows2022、CPython3.11.9、镜像LLVM；生产检查-Wall/-Wextra/-Werror编译，25条PASS及Software checks passed，最后新增GATT用例已执行；无硬件/真实RTOS |
+| [STM32 Debug](https://github.com/xksszm-ux/water/actions/runs/37584729464/job/112672161728) | Ubuntu24.04、ARM GCC13.2.1，全新配置构建；FLASH59824 B/65536 B，RAM17048 B/20480 B |
+| [STM32 Release](https://github.com/xksszm-ux/water/actions/runs/37584729464/job/112672161909) | 同一CI工具链，全新配置构建；FLASH51448 B/65536 B，RAM17032 B/20480 B |
+| [ESP32](https://github.com/xksszm-ux/water/actions/runs/37584729464/job/112672161490) | 官方ESP-IDF v6.1容器、GCC15.2.0，全新构建；app503888 B/1MiB，bootloader26176 B |
+
+本机ARM GCC14.3.1的59028/50592 B FLASH与CI13.2.1结果分列，不能混用不同工具链数字或据此宣称优化/位级一致。本机Windows策略仍拦截DLL，独立CI成功不代表本机故障已解除；过去“最终25组未执行”是当时时点，本节补齐最终运行证据。
+
+SDK仍有5项esp_wifi/wpa_supplicant私有include警告，CI action另有Node弃用提示；未修改SDK或屏蔽它们，不把success描述为全部日志无warning。主机C编译-Werror实际通过；单独host_loader_checks.py诊断回归是此前本地证据，CI没有另行调用它。真实抢占、多核、NimBLE/RF/密码学及硬件验收边界保留，STOP-only与保护未改。
+
+### 10-07本地补测及阻塞历史（最终结果见上节）
 
 新增五组（总25组）的完整C源码已编译，五组分别调用检查入口返回0，使用-Wall -Wextra -Werror。随后在BLE组追加STOP通知失败、GATT新鲜/过期反馈和意外Host退出等小用例，该最终C检查文件又单独编译成功；最终运行复测仍受下述执行环境阻塞，不能把初版结果冒充最终全部通过。run.py也通过Python语法编译检查。
 

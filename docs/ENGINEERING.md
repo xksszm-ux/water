@@ -338,10 +338,10 @@ MPU初始化100 ms、Flash状态轮询1 ms使用HAL_Delay，占据任务CPU等�
 | 部分实现 | Flash日志读取、分页导出及电脑解析工具 | [storage_log.h](../stm32/Application/Services/Storage/storage_log.h)公开Init/Append/GetRecordCount，没有记录读取/导出接口；现有扫描与写入读回是内部恢复/校验，不是面向用户的日志导出 |
 | 未实现，可选扩展 | OTA升级、校验与回退流程 | 主工程未使用OTA业务API或提供升级协议；SDK自带组件和NVS中的“future OTA”注释不构成项目功能，普通串口烧录也不是OTA |
 | 已补生产代码注入检查 | PVD/电机寄存器、ADC DMA超时/迟到回调、HC_SR04比较/EXTI、MPU/OLED I2C、W25Q64 SPI收尾 | 10-07四组新增驱动检查独立通过；保留真实NVIC/DMA/I2C/SPI、精度及物理掉电未验边界，不能由NOR日志替身替代 |
-| 已补事件场景；最终复测状态见验证记录 | BLE/GATT授权、Host reset、换绑、启动/退出资源失败事件链 | [EspBleChecks_Run](../software_checks/startup/esp_ble_checks.c)包含完整robot_ble.c，初版独立通过；最后扩展GATT反馈/通知失败用例，最终复测受审批阻塞，真实NimBLE/多核/RF仍未验 |
-| 已补交付配置；提交/推送/CI状态见HANDOFF | 可克隆的完整版本、环境移植/自动检查 | 检查优先使用PATH LLVM/环境覆盖，STM32 preset不再内置本机目录；[CI](../.github/workflows/software.yml)自动执行主机检查和两端构建。仅配置存在不等于CI通过 |
+| 已补事件场景并通过最终CI检查 | BLE/GATT授权、Host reset、换绑、启动/退出资源失败事件链 | [EspBleChecks_Run](../software_checks/startup/esp_ble_checks.c)包含完整robot_ble.c，最后扩展GATT用例已在09c4869的25组CI检查中通过；真实NimBLE/多核/RF仍未验 |
+| 已提交/推送，CI实际通过 | 可克隆的完整版本、环境移植/自动检查 | main已上传，CI运行37584729464四个作业成功；PATH工具及STM32跨系统构建已实际执行，细节见验证记录。本机Windows策略仍阻止DLL，不把CI结果扩大为本机环境已恢复 |
 
-建议顺序：先完成本轮最终复测与交付核验，再按需求完善手机诊断、日志导出和健康故障软件策略，最后决定运动/导航/PID/OTA扩展。继续保持STOP-only和现有保护。真实调度/栈水位、RF行为、传感精度及实物安全仍是另列验证，不能由上述软件补测替代。
+建议顺序：本轮最终复测与交付已由GitHub CI补齐，后续按需求完善手机诊断、日志导出和健康故障软件策略，再决定运动/导航/PID/OTA扩展。继续保持STOP-only和现有保护。真实调度/栈水位、RF行为、传感精度及实物安全仍是另列验证，不能由上述软件补测替代。
 
 构建与检查命令、实际结果见 [software_checks/README.md](../software_checks/README.md)。面试讲解见 [INTERVIEW.md](INTERVIEW.md)。任何表述均以该验证边界为准。
 
@@ -429,4 +429,4 @@ run.py优先环境覆盖/PATH LLVM，保留旧本机工具作为fallback，不�
 
 .github/workflows/software.yml用Windows2022运行现有Windows ctypes检查，用Ubuntu24.04分别构建STM32 Debug/Release及ESP32；Windows LLVM来源依据[GitHub runner镜像清单](https://github.com/actions/runner-images/blob/main/images/windows/Windows2022-Readme.md)，ESP32使用[Espressif官方CI action](https://github.com/espressif/esp-idf-ci-action)并固定v6.1。没有重写算法或RTOS模拟器；代价是CI下载SDK、编译器版本与本机未必相同，GitHub动作版本/镜像变化仍可能影响构建。添加配置不构成运行成功证据，实际状态见HANDOFF和软件验证记录。
 
-五组新增初版独立运行返回0，两端构建成功；最终小用例复测/统一入口此前遇Windows CodeIntegrity签名策略与自动审批超时，均未绕过。用户10-07明确批准软件复测后，两次沙箱外启动仍被审批超时拒绝，沙箱内运行及lld-link --version则返回Permission denied，尚未进入运行断言；当前不再等待重复批准，执行环境仍阻塞。先前第8/9节及20组数字是历史时点记录，最终25组运行结果仍缺；硬件缺口不因此消失。
+此前本机最终小用例复测受CodeIntegrity、自动审批超时及沙箱lld-link权限阻塞，均未绕过；第8/9节的20组数字属于历史时点。10-07用户重新授权上传后，main正常推送09c4869；[CI运行37584729464](https://github.com/xksszm-ux/water/actions/runs/37584729464)的Windows2022日志已确认25组PASS，STM32 Debug/Release与ESP-IDF6.1三个构建作业均成功，最终GATT/驱动运行证据至此补齐。本机策略不因此解除，真实硬件及RTOS/NimBLE并发边界保留；完整工具链、产物与警告统一记录在software_checks/README.md。
